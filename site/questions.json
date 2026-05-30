@@ -1,0 +1,542 @@
+[
+  {
+    "id": 1,
+    "pair_id": "welfare_1",
+    "primary_subtype": "Economic Equity",
+    "meta_category": "Abstract Principle",
+    "text": "A full-time worker should be able to afford basic housing and food, regardless of the market value of their skills.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 2,
+    "pair_id": "institutions_1",
+    "primary_subtype": "Systemic Stability",
+    "meta_category": "Abstract Principle",
+    "text": "A reliable bureaucracy and well-maintained public infrastructure are more important to daily life than rapid political change.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 3,
+    "pair_id": "speech_1",
+    "primary_subtype": "Speech Freedom",
+    "meta_category": "Abstract Principle",
+    "text": "The government should not restrict the publication of false or offensive information on the internet.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 4,
+    "pair_id": "utility_1",
+    "primary_subtype": "Universal Provision Equity",
+    "meta_category": "Abstract Principle",
+    "text": "Essential resources like water and electricity should be guaranteed to all residents regardless of their ability to pay.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 5,
+    "pair_id": "tradition_1",
+    "primary_subtype": "Cultural Stability",
+    "meta_category": "Abstract Principle",
+    "text": "A society functions best when citizens prioritize long-term institutional continuity over their own immediate gratification.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 6,
+    "pair_id": "risk_1",
+    "primary_subtype": "Financial Freedom",
+    "meta_category": "Abstract Principle",
+    "text": "Adults should be legally permitted to engage in high-risk financial investments or gambling without state safety nets.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 7,
+    "pair_id": "generational_1",
+    "primary_subtype": "Generational Equity",
+    "meta_category": "Abstract Principle",
+    "text": "The fact that a child's economic future is heavily predicted by their parents' wealth is a flaw in the system that needs correction.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 8,
+    "pair_id": "assimilation_1",
+    "primary_subtype": "Cultural Stability",
+    "meta_category": "Abstract Principle",
+    "text": "Immigrants should be expected to fully assimilate into the dominant culture and language of their new country.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 9,
+    "pair_id": "property_1",
+    "primary_subtype": "Property Freedom",
+    "meta_category": "Abstract Principle",
+    "text": "A property owner should have the unrestricted right to develop their land as they see fit, regardless of neighborhood zoning or environmental impact.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 10,
+    "pair_id": "market_1",
+    "primary_subtype": "Economic Equity",
+    "meta_category": "Abstract Principle",
+    "text": "If a free market naturally produces severe inequality, the system is broken and must be heavily regulated.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 11,
+    "pair_id": "zoning_1",
+    "primary_subtype": "Community Stability",
+    "meta_category": "Abstract Principle",
+    "text": "Neighborhoods have the right to preserve their historical character and architecture, even if it limits new development.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 12,
+    "pair_id": "optout_1",
+    "primary_subtype": "Exit Freedom",
+    "meta_category": "Abstract Principle",
+    "text": "If you prefer to invest your own money, you should be legally allowed to opt out of government pension and healthcare programs.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 13,
+    "pair_id": "labor_1",
+    "primary_subtype": "Labor Equity",
+    "meta_category": "Abstract Principle",
+    "text": "Workers should have a democratic share of ownership and decision-making in the companies they help build.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 14,
+    "pair_id": "justice_1",
+    "primary_subtype": "Law & Order Stability",
+    "meta_category": "Abstract Principle",
+    "text": "The primary goal of the penal system should be to isolate dangerous individuals to protect the public, not to attempt to rehabilitate them.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 15,
+    "pair_id": "body_1",
+    "primary_subtype": "Personal Freedom",
+    "meta_category": "Abstract Principle",
+    "text": "Adults should be legally permitted to sell their own organs for money if they consent to the procedure.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 16,
+    "pair_id": "welfare_1",
+    "primary_subtype": "Housing Equity",
+    "meta_category": "Mundane Enforcement",
+    "text": "If a tenant stops paying rent due to a severe medical emergency, the state should legally prevent the landlord from evicting them.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 17,
+    "pair_id": "merit_1",
+    "primary_subtype": "Meritocratic Stability",
+    "meta_category": "Mundane Enforcement",
+    "text": "Selective public universities should base admissions entirely on academic test scores, ignoring demographic or socioeconomic backgrounds.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 18,
+    "pair_id": "drugs_1",
+    "primary_subtype": "Personal Freedom",
+    "meta_category": "Mundane Enforcement",
+    "text": "The possession and sale of recreational drugs should be treated entirely as a public market issue rather than a criminal justice issue.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
+  },
+  {
+    "id": 19,
+    "pair_id": "protest_1",
+    "primary_subtype": "Activism Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Protests that block major roadways are a legitimate tactic to bring attention to pressing social issues.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 20,
+    "pair_id": "noise_1",
+    "primary_subtype": "Public Order Stability",
+    "meta_category": "Mundane Enforcement",
+    "text": "Cities should strictly enforce curfews and noise ordinances, even if it severely limits the nightlife and cultural expression of young adults.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 21,
+    "pair_id": "labor_1",
+    "primary_subtype": "Corporate Freedom",
+    "meta_category": "Mundane Enforcement",
+    "text": "An employer should have the absolute legal right to terminate workers who attempt to unionize on company time.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "id": 22,
+    "pair_id": "market_1",
+    "primary_subtype": "Crisis Equity/Stability",
+    "meta_category": "Protection vs. Market",
+    "text": "During a natural disaster, hardware stores must be legally prohibited from raising prices on essential items like water and generators.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 23,
+    "pair_id": "generational_1",
+    "primary_subtype": "Generational Freedom/Stability",
+    "meta_category": "Right to Exclude",
+    "text": "Parents should be able to pass all their accumulated wealth to their children without the state extracting any inheritance tax.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 24,
+    "pair_id": "licensing_1",
+    "primary_subtype": "Market Freedom",
+    "meta_category": "Access vs. Order",
+    "text": "Occupational licenses for jobs like hair braiding or interior design should be abolished so people can more easily start their own businesses.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 25,
+    "pair_id": "health_1",
+    "primary_subtype": "Public Health Equity/Stability",
+    "meta_category": "Protection vs. Market",
+    "text": "To address public health crises, the state is justified in banning the advertisement of highly processed, high-sugar foods to children.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 26,
+    "pair_id": "community_1",
+    "primary_subtype": "Community Stability",
+    "meta_category": "Right to Exclude",
+    "text": "If a person voluntarily buys a home in a private community, the homeowner's association should have the absolute authority to dictate aesthetic choices to maintain neighborhood harmony.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 27,
+    "pair_id": "zoning_1",
+    "primary_subtype": "Housing Equity/Market Freedom",
+    "meta_category": "Access vs. Order",
+    "text": "Developers should be allowed to build high-density apartment complexes in single-family neighborhoods to increase housing supply, regardless of local opposition.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 28,
+    "pair_id": "speech_1",
+    "primary_subtype": "Public Safety Stability/Equity",
+    "meta_category": "Mundane Enforcement",
+    "text": "If a specific online forum consistently hosts medical misinformation that demonstrably harms public health, the state should shut it down.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 29,
+    "pair_id": "infrastructure_1",
+    "primary_subtype": "Infrastructure Stability/Market Freedom",
+    "meta_category": "Access vs. Order",
+    "text": "Property developers should be exempt from local procedural vetoes and community lawsuits if they are building critical infrastructure like power grids.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 30,
+    "pair_id": "bailout_1",
+    "primary_subtype": "Market Freedom/Anti-Corporate Equity",
+    "meta_category": "Mundane Scenario",
+    "text": "The government should never use taxpayer money to bail out a failing corporation, regardless of how many jobs will be lost or the economic shock.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 31,
+    "pair_id": "vouchers_1",
+    "primary_subtype": "Housing Equity",
+    "meta_category": "Mundane Scenario",
+    "text": "Landlords should be legally required to accept tenants using government housing vouchers if the tenant meets all standard background criteria.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 32,
+    "pair_id": "welfare_dependency_1",
+    "primary_subtype": "Fiscal Stability",
+    "meta_category": "Cost of Principle",
+    "text": "Assume a specific welfare program is definitively proven to encourage long-term generational dependency; it should be cut, even if it temporarily leaves some citizens in poverty.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 33,
+    "pair_id": "medicine_1",
+    "primary_subtype": "Bodily Freedom",
+    "meta_category": "Access vs. Order",
+    "text": "People should be allowed to try unapproved, experimental medical treatments if they are out of options, bypassing all bureaucratic safety regulations.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
+  },
+  {
+    "id": 34,
+    "pair_id": "schoolfunding_1",
+    "primary_subtype": "Educational Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Public school funding should be pooled at the state level and distributed equally per student, removing local neighborhood funding control entirely.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 35,
+    "pair_id": "protectionism_1",
+    "primary_subtype": "Economic Stability",
+    "meta_category": "Protection vs. Market",
+    "text": "The government should strictly limit foreign imports to protect domestic industries, even if it raises prices for everyday consumers.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 36,
+    "pair_id": "monopoly_1",
+    "primary_subtype": "Corporate Freedom",
+    "meta_category": "Cost of Principle",
+    "text": "If a tech company naturally outcompetes rivals and controls a market without fraud, violence, or direct government favoritism, the state should leave them alone.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "id": 37,
+    "pair_id": "braindrain_1",
+    "primary_subtype": "Tax Equity",
+    "meta_category": "Cost of Principle",
+    "text": "We should enforce high taxes on top earners even if it causes the most highly skilled doctors and engineers to emigrate.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 38,
+    "pair_id": "loyalty_1",
+    "primary_subtype": "Social Trust Stability",
+    "meta_category": "Abstract Principle",
+    "text": "A society functions best when citizens prioritize loyalty to their family and local community over their own personal ambitions.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 39,
+    "pair_id": "risk_1",
+    "primary_subtype": "Financial Freedom",
+    "meta_category": "Cost of Principle",
+    "text": "If an adult makes a series of terrible financial decisions and loses everything, society has no obligation to rescue them with taxpayer money.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 40,
+    "pair_id": "transit_1",
+    "primary_subtype": "Infrastructure Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Cities should redesign streets to prioritize public transit and pedestrians, even if it significantly increases commute times for drivers.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 41,
+    "pair_id": "utility_1",
+    "primary_subtype": "Fiscal Stability",
+    "meta_category": "Mundane Enforcement",
+    "text": "If a city cannot afford its utility budget, it is acceptable to shut off water to households that are several months behind on their bills.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 42,
+    "pair_id": "demolition_1",
+    "primary_subtype": "Property Freedom",
+    "meta_category": "Mundane Scenario",
+    "text": "If a historic, privately owned building falls into severe disrepair, the owner should be allowed to demolish it to build a modern structure.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
+  },
+  {
+    "id": 43,
+    "pair_id": "institutions_1",
+    "primary_subtype": "Systemic Equity",
+    "meta_category": "Cost of Principle",
+    "text": "It is necessary to aggressively reform or dismantle long-standing institutions if they consistently produce unequal outcomes.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 44,
+    "pair_id": "security_1",
+    "primary_subtype": "Security Stability",
+    "meta_category": "Cost of Principle",
+    "text": "It is acceptable for the government to aggressively monitor private communications if it demonstrably prevents organized crime and terrorism.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 45,
+    "pair_id": "wage_1",
+    "primary_subtype": "Market Freedom",
+    "meta_category": "Cost of Principle",
+    "text": "If an adult voluntarily accepts employment at a wage rate below the standard cost of living, the state should not intervene to override that agreement.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  }
+]

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Political Prism Test: map your ideology across Equity, Stability, and Freedom.">
+    <title>Political Prism Test</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main id="app" class="app" aria-live="polite"></main>
+    <template id="prism-template">
+      <svg class="prism" viewBox="-100 20 1200 960" role="img" aria-label="Political prism triangle showing Equity, Stability, and Freedom">
+        <defs>
+          <clipPath id="prism-clip"><polygon points="120,520 778,140 778,900"></polygon></clipPath>
+          <radialGradient id="equity-glow" cx="120" cy="520" r="620" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#f13b32"></stop>
+            <stop offset="38%" stop-color="#f13b32" stop-opacity=".92"></stop>
+            <stop offset="72%" stop-color="#f13b32" stop-opacity=".2"></stop>
+            <stop offset="100%" stop-color="#f13b32" stop-opacity="0"></stop>
+          </radialGradient>
+          <radialGradient id="freedom-glow" cx="778" cy="140" r="760" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1f78ff"></stop>
+            <stop offset="32%" stop-color="#1f78ff" stop-opacity=".82"></stop>
+            <stop offset="74%" stop-color="#1f78ff" stop-opacity=".38"></stop>
+            <stop offset="100%" stop-color="#1f78ff" stop-opacity="0"></stop>
+          </radialGradient>
+          <radialGradient id="stability-glow" cx="778" cy="900" r="760" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#38b457"></stop>
+            <stop offset="32%" stop-color="#38b457" stop-opacity=".82"></stop>
+            <stop offset="74%" stop-color="#38b457" stop-opacity=".38"></stop>
+            <stop offset="100%" stop-color="#38b457" stop-opacity="0"></stop>
+          </radialGradient>
+          <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#10100e" flood-opacity=".13"></feDropShadow>
+          </filter>
+        </defs>
+
+        <polygon class="outer-zone" points="120,520 778,140 778,900"></polygon>
+        <g clip-path="url(#prism-clip)" filter="url(#soft-shadow)">
+          <rect class="tri-base" x="70" y="90" width="760" height="860"></rect>
+          <rect x="70" y="90" width="760" height="860" fill="url(#freedom-glow)"></rect>
+          <rect x="70" y="90" width="760" height="860" fill="url(#stability-glow)"></rect>
+          <rect x="70" y="90" width="760" height="860" fill="url(#equity-glow)"></rect>
+        </g>
+        <polygon class="main-triangle" points="120,520 778,140 778,900"></polygon>
+        <line class="axis-line" x1="559" y1="520" x2="120" y2="520"></line>
+        <line class="axis-line" x1="559" y1="520" x2="778" y2="140"></line>
+        <line class="axis-line" x1="559" y1="520" x2="778" y2="900"></line>
+        <line class="mix-line" x1="449" y1="330" x2="778" y2="900"></line>
+        <line class="mix-line" x1="449" y1="710" x2="778" y2="140"></line>
+        <line class="mix-line" x1="778" y1="520" x2="120" y2="520"></line>
+
+        <text class="pole-label pole-equity" x="94" y="528" text-anchor="end">EQUITY</text>
+        <text class="pole-label pole-freedom" x="778" y="120" text-anchor="start">FREEDOM</text>
+        <text class="pole-label pole-stability" x="778" y="934" text-anchor="start">STABILITY</text>
+
+        <text class="map-label strong" x="318" y="508" text-anchor="middle">THE LEFT</text>
+        <text class="map-label strong" x="666" y="508" text-anchor="middle">THE RIGHT</text>
+        <text class="map-label" x="390" y="365" transform="rotate(-30 390 365)" text-anchor="middle">REPUBLICANISM</text>
+        <text class="map-label" x="404" y="690" transform="rotate(30 404 690)" text-anchor="middle">TOTALITARIANISM</text>
+        <text class="map-label" x="838" y="518" transform="rotate(90 838 518)" text-anchor="middle">DARWINISM</text>
+        <text class="map-label" x="713" y="275" text-anchor="middle">ANARCHO-CAPITALISM</text>
+        <text class="map-label" x="706" y="818" text-anchor="middle">CZARISM</text>
+        <text class="map-label" x="246" y="562" text-anchor="middle">MARX-LENINISM</text>
+
+        <g class="result-point" hidden>
+          <line class="point-guide" x1="0" y1="0" x2="0" y2="0"></line>
+          <circle class="point-ring" cx="0" cy="0" r="25"></circle>
+          <circle class="point-dot" cx="0" cy="0" r="10"></circle>
+          <text class="point-label" x="0" y="-38" text-anchor="middle">your result</text>
+        </g>
+
+      </svg>
+    </template>
+    <script src="app.js"></script>
+  </body>
+</html>
