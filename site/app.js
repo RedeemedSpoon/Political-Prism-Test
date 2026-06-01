@@ -15,8 +15,11 @@ const ANSWER_LABELS = [
 const STORE_KEY = "political-prism-state";
 const THEME_KEY = "political-prism-theme";
 const SOURCE_URL = "https://github.com/RedeemedSpoon/Political-Prism-Test";
+const READING_GUIDE_URL = "reading-political-prism.md";
+const TOAST_TIMEOUT_MS = 5000;
 
 let questions = [];
+let readingGuideHtml = "";
 let bounds = { min: [0, 0, 0], max: [0, 0, 0] };
 let state = {
   seed: "",
@@ -33,7 +36,9 @@ init();
 
 async function init() {
   try {
-    questions = await fetchQuestions();
+    const [loadedQuestions, loadedGuide] = await Promise.all([fetchQuestions(), fetchReadingGuide()]);
+    questions = loadedQuestions;
+    readingGuideHtml = loadedGuide;
     bounds = computeBounds(questions);
     state = makeInitialState();
     render();
@@ -52,6 +57,12 @@ async function fetchQuestions() {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
   return data.slice().sort((a, b) => a.id - b.id);
+}
+
+async function fetchReadingGuide() {
+  const response = await fetch(READING_GUIDE_URL, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return markdownToHtml(await response.text());
 }
 
 function makeInitialState() {
@@ -193,24 +204,14 @@ function renderLanding() {
       <article>${icon("stability")}<div><b style="color: var(--stability)">Stability</b><p>Measures how strongly you value law, continuity, institutions, social trust, public order, competence, and shared norms.</p></div></article>
       <article>${icon("freedom")}<div><b style="color: var(--freedom)">Freedom</b><p>Measures how strongly you protect speech, property, bodily authority, exit rights, voluntary exchange, and decentralization.</p></div></article>
     </section>
-    <section class="explain-section">
-      <p class="eyebrow">What the result shows</p>
-      <h2>The result is meant to answer five questions.</h2>
-      <div class="question-list">
-        <p>${icon("triangle")}<span>Where do I land on the Equity, Stability, Freedom prism?</span></p>
-        <p>${icon("tension")}<span>Which wing or mix am I closest to?</span></p>
-        <p>${icon("mirror")}<span>Which philosophies do I resemble?</span></p>
-        <p>${icon("stability")}<span>Am I idealist, conditional, or conflicted?</span></p>
-        <p>${icon("freedom")}<span>What does my worldview protect, and what does it sacrifice?</span></p>
-      </div>
-    </section>
     <section class="text-section">
       <p class="eyebrow">Why another political test?</p>
       <h2>A triangle catches what one-line maps miss.</h2>
-      <p>Most political tests inherit the limits of the left-right line. They can tell you whether you sound more progressive, conservative, libertarian, or authoritarian, but they often blur together different reasons for reaching the same answer.</p>
-      <p>The Political Prism separates three old political questions: Who deserves protection from hierarchy? What institutions and customs keep a society from falling apart? Where must the individual remain sovereign? Those questions have appeared in arguments about republics, monarchies, markets, socialism, liberalism, nationalism, and civic order for centuries.</p>
-      <p>This project began from the old <a href="original-inspiration.png" target="_blank" rel="noopener">Political Triangle diagram</a> and rebuilds that idea as a browser-based test. The labels are interpretive, not definitive; they are there to orient you on the map, not to pronounce a final identity.</p>
+      <p>Most political tests inherit the limits of the left-right line. They can tell you whether you sound more progressive, conservative, libertarian, or authoritarian, but they often blur together different political reasons for reaching the same answer.</p>
+      <p>The Political Prism separates three durable questions: who deserves protection from hierarchy, what keeps a society from falling apart, and where the individual must remain sovereign. Those questions have shaped arguments about republics, monarchies, markets, socialism, liberalism, nationalism, and civic order for centuries.</p>
+      <p>A one-line map turns politics into a tug-of-war. The prism shows when two camps share a policy but not a motive, or share a motive but not a political structure. Its labels are interpretive, not final; they are there to orient you on the map, not to pronounce a permanent identity.</p>
     </section>
+    ${makeReadingGuide()}
     <section class="selling-cards" aria-label="Other details">
       <article>${icon("triangle")}<b>Open source</b><p>The model can be inspected, criticized, forked, and improved.</p></article>
       <article>${icon("mirror")}<b>Local only</b><p>Your answers are calculated in the browser. The site does not need an account or backend.</p></article>
@@ -231,6 +232,37 @@ function renderLanding() {
   });
 }
 
+function makeReadingGuide() {
+  return `
+    <section class="text-section reading-section">
+      <div class="guide-copy">${readingGuideHtml}</div>
+    </section>
+  `;
+}
+
+function markdownToHtml(markdown) {
+  let headingCount = 0;
+  let openArticle = false;
+  const blocks = markdown.trim().split(/\n{2,}/);
+  const html = blocks.map(block => {
+    const text = block.replace(/\n/g, " ").trim();
+    if (text.startsWith("## ")) {
+      headingCount += 1;
+      const heading = renderInlineMarkdown(text.slice(3));
+      if (headingCount === 1) return `<h2>${heading}</h2>`;
+      const prefix = openArticle ? "</article>" : "";
+      openArticle = true;
+      return `${prefix}<article><h3>${heading}</h3>`;
+    }
+    return `<p>${renderInlineMarkdown(text)}</p>`;
+  }).join("");
+  return openArticle ? `${html}</article>` : html;
+}
+
+function renderInlineMarkdown(text) {
+  return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+}
+
 function startNewTest() {
   state.seed = makeSeed();
   state.order = seededOrder(state.seed, questions);
@@ -243,15 +275,15 @@ function startNewTest() {
 }
 
 function renderTest() {
-  const answeredCount = Object.keys(state.answers).length;
+  const completedCount = getCompletedCount();
   const question = questions.find(q => q.id === state.order[state.index]);
   const selected = state.answers[question.id];
-  const progress = Math.round((answeredCount / questions.length) * 100);
+  const progress = getProgressPercent(completedCount);
   renderFrame(`
     <section class="test-shell">
       <div class="progress-row">
         <span>Question ${state.index + 1} of ${questions.length}</span>
-        <span>${answeredCount} answered</span>
+        <span>${completedCount} answered</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
       <article class="question-panel">
@@ -285,9 +317,16 @@ function renderTest() {
   app.querySelector("[data-action='next']").addEventListener("click", nextQuestion);
 }
 
+function getCompletedCount() {
+  return clamp(state.index, 0, questions.length);
+}
+
+function getProgressPercent(completedCount = getCompletedCount()) {
+  return Math.round((completedCount / questions.length) * 100);
+}
+
 function answerCurrent(value) {
   const id = state.order[state.index];
-  const wasAnswered = Number.isFinite(state.answers[id]);
   state.answers[id] = value;
   persist();
   app.querySelectorAll(".choice").forEach(button => {
@@ -296,13 +335,6 @@ function answerCurrent(value) {
     button.setAttribute("aria-checked", selected);
   });
   app.querySelector("[data-action='next']")?.removeAttribute("disabled");
-  if (!wasAnswered) {
-    const answeredCount = Object.keys(state.answers).length;
-    const fill = app.querySelector(".progress-fill");
-    const counters = app.querySelectorAll(".progress-row span");
-    if (fill) fill.style.width = `${Math.round((answeredCount / questions.length) * 100)}%`;
-    if (counters[1]) counters[1].textContent = `${answeredCount} answered`;
-  }
 }
 
 function nextQuestion() {
@@ -626,13 +658,20 @@ function makeShareUrl() {
 function shareResult() {
   const fullUrl = `${location.origin}${makeShareUrl()}`;
   const toast = app.querySelector("#toast");
+  const showToast = message => {
+    if (!toast) return;
+    toast.textContent = message;
+    window.setTimeout(() => {
+      if (toast.textContent === message) toast.textContent = "";
+    }, TOAST_TIMEOUT_MS);
+  };
   if (navigator.share) {
     navigator.share({ title: "Political Prism Test result", url: fullUrl }).catch(() => {});
   }
   navigator.clipboard?.writeText(fullUrl).then(() => {
-    toast.textContent = "Result link copied.";
+    showToast("Result link copied.");
   }).catch(() => {
-    toast.textContent = fullUrl;
+    showToast(fullUrl);
   });
 }
 

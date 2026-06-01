@@ -387,8 +387,7 @@ h3 {
 .axis-rows {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 34px 0 50px;
-  border-top: 1px solid var(--line);
+  padding: clamp(30px, 5vw, 48px) 0 clamp(36px, 6vw, 58px);
 }
 
 .axis-rows article {
@@ -422,7 +421,6 @@ h3 {
 .explain-section,
 .text-section {
   padding: clamp(38px, 7vw, 76px) 0;
-  border-top: 1px solid var(--line);
 }
 
 .text-section .eyebrow {
@@ -472,12 +470,51 @@ h3 {
   line-height: 1.58;
 }
 
+.guide-copy {
+  max-width: 760px;
+}
+
+.guide-copy h2 {
+  max-width: none;
+  margin-bottom: clamp(26px, 4vw, 42px);
+  white-space: nowrap;
+}
+
+.guide-copy article {
+  display: grid;
+  gap: 0;
+  margin-top: clamp(24px, 4vw, 36px);
+}
+
+.guide-copy article:first-of-type {
+  margin-top: 0;
+}
+
+.guide-copy h3 {
+  max-width: none;
+  margin: 0 0 12px;
+  color: var(--gold);
+  font-size: clamp(1.22rem, 1.9vw, 1.5rem);
+  line-height: 1.08;
+  white-space: nowrap;
+}
+
+.guide-copy p {
+  max-width: 760px;
+  margin-bottom: 1.05rem;
+  font-size: 1.04rem;
+  line-height: 1.68;
+}
+
+.guide-copy b {
+  color: var(--ink);
+}
+
 .selling-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(16px, 3vw, 34px);
-  padding: 48px 0 62px;
-  border-top: 1px solid var(--line);
+  padding: clamp(28px, 5vw, 48px) 0 clamp(40px, 6vw, 64px);
 }
 
 .selling-cards article {
@@ -527,8 +564,7 @@ h3 {
   display: grid;
   justify-items: center;
   text-align: center;
-  padding: clamp(56px, 9vw, 104px) clamp(18px, 5vw, 64px) 24px;
-  border-top: 1px solid var(--line);
+  padding: clamp(42px, 7vw, 78px) clamp(18px, 5vw, 64px) 24px;
 }
 
 .final-cta .site-logo {
@@ -819,8 +855,8 @@ h3 {
 .result-title {
   margin: 0;
   max-width: none;
-  font-size: clamp(1.8rem, 3.7vw, 3.45rem);
-  line-height: .95;
+  font-size: clamp(1.35rem, 2.6vw, 2.35rem);
+  line-height: 1.05;
   white-space: nowrap;
   text-transform: uppercase;
 }
@@ -952,7 +988,6 @@ h3 {
 
   .axis-rows article {
     border-right: 0;
-    border-bottom: 1px solid var(--line);
   }
 
   .hero {

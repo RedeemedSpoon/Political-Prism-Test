@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 89 862 862">
+  <defs>
+    <clipPath id="prism-clip">
+      <polygon points="120,520 778,140 778,900"/>
+    </clipPath>
+    <radialGradient id="equity-glow" cx="120" cy="520" r="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f13b32"/>
+      <stop offset="38%" stop-color="#f13b32" stop-opacity=".92"/>
+      <stop offset="72%" stop-color="#f13b32" stop-opacity=".2"/>
+      <stop offset="100%" stop-color="#f13b32" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="freedom-glow" cx="778" cy="140" r="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1f78ff"/>
+      <stop offset="32%" stop-color="#1f78ff" stop-opacity=".82"/>
+      <stop offset="74%" stop-color="#1f78ff" stop-opacity=".38"/>
+      <stop offset="100%" stop-color="#1f78ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="stability-glow" cx="778" cy="900" r="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38b457"/>
+      <stop offset="32%" stop-color="#38b457" stop-opacity=".82"/>
+      <stop offset="74%" stop-color="#38b457" stop-opacity=".38"/>
+      <stop offset="100%" stop-color="#38b457" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g clip-path="url(#prism-clip)">
+    <rect x="70" y="90" width="760" height="860" fill="#e7dfd2"/>
+    <rect x="70" y="90" width="760" height="860" fill="url(#freedom-glow)"/>
+    <rect x="70" y="90" width="760" height="860" fill="url(#stability-glow)"/>
+    <rect x="70" y="90" width="760" height="860" fill="url(#equity-glow)"/>
+  </g>
+
+  <polygon points="120,520 778,140 778,900" fill="none" stroke="#181818" stroke-width="12" stroke-linejoin="round"/>
+  <g fill="none" stroke="#181818" stroke-linecap="round">
+    <path d="M559 520 120 520" stroke-width="6" opacity=".22"/>
+    <path d="M559 520 778 140" stroke-width="6" opacity=".18"/>
+    <path d="M559 520 778 900" stroke-width="6" opacity=".18"/>
+    <path d="M449 330 778 900" stroke-width="4" opacity=".14"/>
+    <path d="M449 710 778 140" stroke-width="4" opacity=".14"/>
+  </g>
+</svg>
