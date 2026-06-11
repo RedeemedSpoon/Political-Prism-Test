@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, follow">
+    <meta name="theme-color" content="#f1ede4">
+    <title>Page not found - Political Prism Test</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+      .not-found {
+        min-height: min(760px, calc(100vh - 56px));
+        display: grid;
+        place-items: center;
+      }
+
+      .not-found-panel {
+        width: min(620px, 100%);
+        padding: 36px;
+        border: 1px solid var(--line);
+        background: var(--field);
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+
+      .not-found h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.3rem, 9vw, 5.8rem);
+        line-height: .9;
+        letter-spacing: 0;
+      }
+
+      .not-found p {
+        margin: 0 auto 24px;
+        max-width: 34rem;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.55;
+      }
+
+      .not-found a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 9px 16px;
+        border: 1px solid var(--line-dark);
+        background: var(--ink);
+        color: var(--paper);
+        text-decoration: none;
+      }
+
+      .not-found a:hover,
+      .not-found a:focus-visible {
+        background: transparent;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app not-found">
+      <section class="not-found-panel" aria-labelledby="page-title">
+        <h1 id="page-title">404</h1>
+        <p>The page you requested is not available. Return to the test to continue from the main page.</p>
+        <a href="index.html">Open Political Prism Test</a>
+      </section>
+    </main>
+  </body>
+</html>
