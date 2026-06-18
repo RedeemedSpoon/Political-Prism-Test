@@ -1,18 +1,16 @@
 {
-  "name": "Political Prism Test",
+  "name": "The Political Prism",
   "short_name": "Political Prism",
-  "description": "Map your ideology across Equity, Stability, and Freedom.",
-  "start_url": ".",
-  "scope": ".",
+  "description": "A three-pole political quiz built around Freedom, Equality, and Stability.",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#eeece5",
-  "theme_color": "#f1ede4",
+  "background_color": "#f4f1e8",
+  "theme_color": "#f4f1e8",
   "icons": [
     {
       "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "sizes": "64x64",
+      "type": "image/svg+xml"
     }
   ]
 }

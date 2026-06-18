@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quiz - The Political Prism</title>
+    <meta name="description" content="Answer tradeoff questions to locate yourself inside the Political Prism.">
+    <meta name="theme-color" content="#f4f1e8">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,750&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body data-page="quiz">
+    <div class="page-shell">
+      <header class="site-header" aria-label="Site header">
+        <a class="brand" href="./" aria-label="The Political Prism home">
+          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <path class="mark-outline" d="M8 34 54 9 54 57Z"/>
+            <path class="mark-equality" d="M8 34 38.67 33.33 54 9Z"/>
+            <path class="mark-freedom" d="M54 9 38.67 33.33 54 57Z"/>
+            <path class="mark-stability" d="M54 57 38.67 33.33 8 34Z"/>
+          </svg>
+          <span>The Political Prism</span>
+        </a>
+        <div class="header-actions">
+          <nav class="nav-links" aria-label="Primary navigation">
+            <a href="./">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>
+              <span>Homepage</span>
+            </a>
+            <a href="quiz.html" aria-current="page">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+              <span>Quiz</span>
+            </a>
+            <a href="https://github.com/RedeemedSpoon/Political-Prism-Test">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>
+              <span>Source code</span>
+            </a>
+          </nav>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle color theme" title="Toggle color theme">
+            <svg class="theme-icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3M6.6 6.6 4.5 4.5M19.5 19.5l-2.1-2.1M17.4 6.6l2.1-2.1M4.5 19.5l2.1-2.1"/><circle cx="12" cy="12" r="4"/></svg>
+            <svg class="theme-icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="quiz-page" aria-labelledby="quizTitle">
+          <div class="quiz-intro">
+            <div>
+              <h1 id="quizTitle">Answer truthfully.</h1>
+              <p class="quiz-subtext">Pick the response you would actually defend, then use Next to move through the test.</p>
+            </div>
+          </div>
+
+          <div class="quiz-card" id="quizCard">
+            <div class="quiz-meta">
+              <span id="questionCounter">Loading questions</span>
+              <span id="seedBadge">Seed</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progressFill"></span>
+            </div>
+            <p class="question-category" id="questionCategory"></p>
+            <h2 id="questionText">Loading...</h2>
+            <div class="answer-scale" id="answerScale" role="group" aria-label="Answer choices"></div>
+            <div class="quiz-controls">
+              <button class="command secondary nav-command" id="prevQuestion" type="button">
+                <span aria-hidden="true">&larr;</span>
+                <span>Previous</span>
+              </button>
+              <button class="command primary nav-command" id="nextQuestion" type="button">
+                <span>Next</span>
+                <span aria-hidden="true">&rarr;</span>
+              </button>
+            </div>
+            <p class="quiz-status" id="quizStatus" role="status"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,802 +1,735 @@
-const POLES = ["Equity", "Stability", "Freedom"];
-const VERTICES = {
-  Equity: { x: 120, y: 520 },
-  Stability: { x: 778, y: 900 },
-  Freedom: { x: 778, y: 140 }
+const AXES = {
+  freedom: {
+    label: "Freedom",
+    short: "Freedom",
+    color: "#307cff",
+    vertex: { x: 548, y: 98 },
+    note: "Individual, exit, trade",
+    summary: "Do not make me a tool of society.",
+    blindSpot: "May underweight unequal starting power, dependency, and the institutions that make voluntary choice possible."
+  },
+  equality: {
+    label: "Equality",
+    short: "Equality",
+    color: "#e04432",
+    vertex: { x: 82, y: 310 },
+    note: "Moral standing, care",
+    summary: "Do not let society divide people into masters and dependents.",
+    blindSpot: "May underweight exit, excellence, pluralism, and the danger of care becoming control."
+  },
+  stability: {
+    label: "Stability",
+    short: "Stability",
+    color: "#38a657",
+    vertex: { x: 548, y: 522 },
+    note: "Order, duty, continuity",
+    summary: "Do not dissolve the order that lets a people survive.",
+    blindSpot: "May underweight dissent, renewal, and the living people harmed when order protects itself."
+  }
 };
-const ANSWER_VALUES = [-2, -1, 0, 1, 2];
-const ANSWER_LABELS = [
-  "Strongly disagree",
-  "Disagree",
-  "Neutral/unsure",
-  "Agree",
-  "Strongly agree"
-];
-const STORE_KEY = "political-prism-state";
-const THEME_KEY = "political-prism-theme";
-const SOURCE_URL = "https://github.com/RedeemedSpoon/Political-Prism-Test";
-const READING_GUIDE_URL = "reading-political-prism.md";
-const TOAST_TIMEOUT_MS = 5000;
 
-let questions = [];
-let readingGuideHtml = "";
-let bounds = { min: [0, 0, 0], max: [0, 0, 0] };
-let state = {
+const VECTOR_ORDER = ["equality", "stability", "freedom"];
+const DISPLAY_ORDER = ["freedom", "equality", "stability"];
+const ANSWER_VALUES = [
+  { value: -2, label: "Strongly oppose" },
+  { value: -1, label: "Oppose" },
+  { value: 0, label: "Unsure" },
+  { value: 1, label: "Support" },
+  { value: 2, label: "Strongly support" }
+];
+
+const LAYERS = {
+  virtues: {
+    eyebrow: "Virtues Layer",
+    title: "Freedom, Equality, Stability",
+    description: "The philosophical layer. Each pole is a real civic good, and the model begins when the goods demand different sacrifices.",
+    points: [
+      { id: "freedom-virtue", label: "Freedom", tone: "freedom", weights: { freedom: 0.92, equality: 0.04, stability: 0.04 }, dx: -64, dy: 20, text: "The individual is morally prior to the group. Agency, exit, ownership, speech, association, sexuality, contract, risk, and refusal matter most." },
+      { id: "equality-virtue", label: "Equality", tone: "equality", weights: { freedom: 0.04, equality: 0.92, stability: 0.04 }, dx: 20, dy: 20, text: "People should meet as moral equals, not as masters and dependents. Fairness, dignity, anti-domination, and social provision matter most." },
+      { id: "stability-virtue", label: "Stability", tone: "stability", weights: { freedom: 0.04, equality: 0.04, stability: 0.92 }, dx: -58, dy: -36, text: "Society is a collective body that must survive across time. Continuity, office, rank, borders, memory, and coordination matter most." },
+      { id: "voluntary-exchange", label: "Voluntary exchange", tone: "freedom", weights: { freedom: 0.66, equality: 0.18, stability: 0.16 }, dx: -116, dy: -10, text: "Freedom's social logic: trade, contract, consent, competition, property, markets, and rule of law." },
+      { id: "family-care", label: "Family and care", tone: "equality", weights: { freedom: 0.18, equality: 0.64, stability: 0.18 }, dx: 18, dy: -12, text: "Equality's social logic: sharing, mutual obligation, protection, moral inclusion, redistribution, and compassion." },
+      { id: "command-continuity", label: "Command and continuity", tone: "stability", weights: { freedom: 0.18, equality: 0.18, stability: 0.64 }, dx: -88, dy: -22, text: "Stability's social logic: hierarchy, office, rank, law, bureaucracy, military structure, and collective discipline." }
+    ]
+  },
+  units: {
+    eyebrow: "Units Layer",
+    title: "Individual, Community, Collective Body",
+    description: "The anthropological layer. Each pole imagines society from a different unit of concern.",
+    points: [
+      { id: "individual", label: "Individual", tone: "freedom", weights: { freedom: 0.9, equality: 0.05, stability: 0.05 }, dx: -70, dy: 20, text: "The person as chooser, owner, speaker, trader, dissenter, and bearer of rights." },
+      { id: "community", label: "Community", tone: "equality", weights: { freedom: 0.05, equality: 0.9, stability: 0.05 }, dx: 18, dy: 20, text: "The person as member of a moral community, entitled to dignity, care, and protection from domination." },
+      { id: "collective-body", label: "Collective Body", tone: "stability", weights: { freedom: 0.05, equality: 0.05, stability: 0.9 }, dx: -86, dy: -36, text: "The society as a body with memory, offices, borders, discipline, identity, and long-term survival needs." },
+      { id: "trade", label: "Trade", tone: "freedom", weights: { freedom: 0.7, equality: 0.15, stability: 0.15 }, dx: -52, dy: -20, text: "Exchange and contract coordinate strangers without making them one family or one command structure." },
+      { id: "mutual-obligation", label: "Mutual obligation", tone: "equality", weights: { freedom: 0.18, equality: 0.62, stability: 0.2 }, dx: 18, dy: -10, text: "Care and reciprocity bind people through shared standing and protection against dependence." },
+      { id: "institution", label: "Institution", tone: "stability", weights: { freedom: 0.17, equality: 0.23, stability: 0.6 }, dx: -66, dy: -22, text: "Offices and rules preserve memory, authority, and coordination beyond any single person." }
+    ]
+  },
+  ideologies: {
+    eyebrow: "Ideologies Layer",
+    title: "Political systems as mixtures",
+    description: "Ideologies are placed as approximate mixtures of the three virtues. The point is orientation, not final taxonomy.",
+    points: [
+      { id: "ancap", label: "Anarcho-capitalism", tone: "freedom", weights: { freedom: 0.9, equality: 0.04, stability: 0.06 }, dx: -138, dy: 18, text: "Freedom radicalized toward private order, exit, property, and market coordination." },
+      { id: "libertarianism", label: "Libertarianism", tone: "freedom", weights: { freedom: 0.76, equality: 0.09, stability: 0.15 }, dx: -112, dy: -12, text: "Freedom with minimal enforced equality and a deliberately narrow state." },
+      { id: "liberalism", label: "Liberalism", tone: "freedom", weights: { freedom: 0.45, equality: 0.32, stability: 0.23 }, dx: -104, dy: 14, text: "Freedom balanced with legal equality, pluralism, rights, and institutional constraint." },
+      { id: "republicanism", label: "Republicanism", tone: "stability", weights: { freedom: 0.43, equality: 0.22, stability: 0.35 }, dx: -110, dy: -26, text: "Freedom joined to civic duty, public virtue, and resistance to domination by private or public masters." },
+      { id: "social-democracy", label: "Social democracy", tone: "equality", weights: { freedom: 0.26, equality: 0.52, stability: 0.22 }, dx: 18, dy: -6, text: "Equality pursued through welfare, labor power, and democratic institutions while preserving pluralism and markets." },
+      { id: "marx-leninism", label: "Marx-Leninism", tone: "equality", weights: { freedom: 0.05, equality: 0.68, stability: 0.27 }, dx: 18, dy: 4, text: "Equality radicalized through party, state, and centralized enforcement." },
+      { id: "conservatism", label: "Conservatism", tone: "stability", weights: { freedom: 0.27, equality: 0.13, stability: 0.6 }, dx: -122, dy: -18, text: "Stability with room for property, local order, inherited institutions, and gradual reform." },
+      { id: "nationalism", label: "Nationalism", tone: "stability", weights: { freedom: 0.14, equality: 0.25, stability: 0.61 }, dx: 18, dy: -18, text: "Stability through shared peoplehood, borders, loyalty, and collective identity." },
+      { id: "monarchy", label: "Monarchy", tone: "stability", weights: { freedom: 0.12, equality: 0.08, stability: 0.8 }, dx: -88, dy: -24, text: "Stability through inherited hierarchy, continuity, office, and symbolic unity." },
+      { id: "fascism", label: "Fascism", tone: "stability", weights: { freedom: 0.03, equality: 0.12, stability: 0.85 }, dx: 16, dy: -36, text: "The collective body and command principle taken into domination." }
+    ]
+  },
+  figures: {
+    eyebrow: "Authority Figures Layer",
+    title: "Approximate reference points",
+    description: "These placements orient different traditions. They are not endorsements, rankings, or final judgments.",
+    points: [
+      { id: "locke", label: "John Locke", tone: "freedom", weights: { freedom: 0.7, equality: 0.15, stability: 0.15 }, dx: -92, dy: -8, text: "Natural rights, property, consent, and limited government near the Freedom pole." },
+      { id: "smith", label: "Adam Smith", tone: "freedom", weights: { freedom: 0.65, equality: 0.18, stability: 0.17 }, dx: -96, dy: 18, text: "Commercial society and voluntary exchange, tempered by moral sentiment and law." },
+      { id: "mill", label: "J. S. Mill", tone: "freedom", weights: { freedom: 0.68, equality: 0.2, stability: 0.12 }, dx: -80, dy: -34, text: "Individuality, speech, experiments in living, and liberty against social coercion." },
+      { id: "friedman", label: "Milton Friedman", tone: "freedom", weights: { freedom: 0.76, equality: 0.08, stability: 0.16 }, dx: -112, dy: 20, text: "Market freedom, limited state action, and suspicion of enforced provision." },
+      { id: "marx", label: "Karl Marx", tone: "equality", weights: { freedom: 0.12, equality: 0.72, stability: 0.16 }, dx: 16, dy: -30, text: "Anti-domination through class analysis, social ownership, and equality against capital." },
+      { id: "lenin", label: "Vladimir Lenin", tone: "equality", weights: { freedom: 0.04, equality: 0.62, stability: 0.34 }, dx: 18, dy: -2, text: "Revolutionary equality joined to party command and state capacity." },
+      { id: "mandela", label: "Nelson Mandela", tone: "equality", weights: { freedom: 0.35, equality: 0.48, stability: 0.17 }, dx: 18, dy: 22, text: "Anti-caste equality, civic reconciliation, and constitutional pluralism." },
+      { id: "fdr", label: "F. D. Roosevelt", tone: "equality", weights: { freedom: 0.3, equality: 0.45, stability: 0.25 }, dx: -106, dy: -20, text: "Social provision and economic security within a durable democratic state." },
+      { id: "burke", label: "Edmund Burke", tone: "stability", weights: { freedom: 0.28, equality: 0.12, stability: 0.6 }, dx: -112, dy: -22, text: "Institutional memory, inheritance, gradualism, and skepticism toward abstract rupture." },
+      { id: "confucius", label: "Confucius", tone: "stability", weights: { freedom: 0.12, equality: 0.25, stability: 0.63 }, dx: 18, dy: -22, text: "Ritual, hierarchy, duty, cultivated order, and relational moral obligation." },
+      { id: "bismarck", label: "Otto von Bismarck", tone: "stability", weights: { freedom: 0.16, equality: 0.26, stability: 0.58 }, dx: 18, dy: 10, text: "State capacity, national consolidation, and welfare as social integration." },
+      { id: "lee", label: "Lee Kuan Yew", tone: "stability", weights: { freedom: 0.18, equality: 0.2, stability: 0.62 }, dx: -110, dy: -2, text: "Order, development, administrative competence, and collective discipline." },
+      { id: "louis", label: "Louis XIV", tone: "stability", weights: { freedom: 0.05, equality: 0.06, stability: 0.89 }, dx: -76, dy: -36, text: "Absolutist monarchy and concentrated royal authority near the Stability pole." }
+    ]
+  }
+};
+
+const RESULT_NAMES = {
+  freedom: { equality: "Liberal Egalitarian", stability: "Ordered Liberty" },
+  equality: { freedom: "Emancipatory Egalitarian", stability: "Institutional Egalitarian" },
+  stability: { freedom: "Conservative Liberal", equality: "Communitarian Order" }
+};
+
+const state = {
+  questions: [],
+  byId: new Map(),
   seed: "",
   order: [],
-  answers: {},
   index: 0,
-  screen: "landing"
+  answers: {},
+  activeView: "virtues",
+  selectedPointId: null,
+  lastResult: null
 };
 
-const app = document.querySelector("#app");
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
-initTheme();
+const els = {
+  triangleCanvas: $("#triangleCanvas"),
+  layerEyebrow: $("#layerEyebrow"),
+  layerTitle: $("#layerTitle"),
+  layerDescription: $("#layerDescription"),
+  selectedPoint: $("#selectedPoint"),
+  pointList: $("#pointList"),
+  viewTabs: $$("[data-view]"),
+  questionCounter: $("#questionCounter"),
+  seedBadge: $("#seedBadge"),
+  progressFill: $("#progressFill"),
+  questionCategory: $("#questionCategory"),
+  questionText: $("#questionText"),
+  answerScale: $("#answerScale"),
+  prevQuestion: $("#prevQuestion"),
+  nextQuestion: $("#nextQuestion"),
+  quizStatus: $("#quizStatus"),
+  resultSummary: $("#resultSummary"),
+  resultBars: $("#resultBars"),
+  resultReading: $("#resultReading"),
+  copyResultLink: $("#copyResultLink"),
+  resumeQuiz: $("#resumeQuiz"),
+  resumeHomeLink: $("#resumeHomeLink")
+};
+
 init();
 
 async function init() {
-  try {
-    const [loadedQuestions, loadedGuide] = await Promise.all([fetchQuestions(), fetchReadingGuide()]);
-    questions = loadedQuestions;
-    readingGuideHtml = loadedGuide;
-    bounds = computeBounds(questions);
-    state = makeInitialState();
-    render();
-    window.addEventListener("keydown", onKeydown);
-    window.addEventListener("popstate", () => {
-      state = makeInitialState();
-      render();
-    });
-  } catch (error) {
-    app.innerHTML = `<section class="question-panel"><h1>Political Prism Test</h1><p class="plain-copy">Could not load <code>questions.json</code>. ${escapeHtml(error.message)}</p></section>`;
+  initTheme();
+  initTriangle();
+  initResumeLinks();
+
+  const page = document.body.dataset.page || "home";
+  if (page === "quiz") {
+    await loadQuestions();
+    initQuizPage();
+  }
+  if (page === "results") {
+    await loadQuestions();
+    initResultsPage();
   }
 }
 
-async function fetchQuestions() {
-  const response = await fetch("questions.json", { cache: "no-store" });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  return data.slice().sort((a, b) => a.id - b.id);
-}
-
-async function fetchReadingGuide() {
-  const response = await fetch(READING_GUIDE_URL, { cache: "no-store" });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return markdownToHtml(await response.text());
-}
-
-function makeInitialState() {
-  const params = new URLSearchParams(location.search);
-  const stored = readStoredState();
-  const seed = params.get("seed") || stored.seed || makeSeed();
-  const order = seededOrder(seed, questions);
-  const encoded = params.get("a");
-  const answers = encoded ? decodeAnswers(encoded, questions) : (stored.seed === seed ? stored.answers || {} : {});
-  const hasFullUrlAnswers = encoded && Object.keys(answers).length === questions.length;
-  return {
-    seed,
-    order,
-    answers,
-    index: clamp(Number(stored.index) || 0, 0, questions.length - 1),
-    screen: hasFullUrlAnswers ? "results" : "landing"
-  };
-}
-
-function readStoredState() {
-  try {
-    return JSON.parse(localStorage.getItem(STORE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function persist() {
-  localStorage.setItem(STORE_KEY, JSON.stringify({
-    seed: state.seed,
-    answers: state.answers,
-    index: state.index
-  }));
-}
-
-function render() {
-  if (state.screen === "test") renderTest();
-  else if (state.screen === "results") renderResults();
-  else renderLanding();
-}
-
-function renderFrame(content) {
-  app.innerHTML = `
-    <a class="github-corner" href="${SOURCE_URL}" target="_blank" rel="noopener" aria-label="View source on GitHub">
-      <svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
-        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
-        <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" class="octo-arm"></path>
-        <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
-      </svg>
-    </a>
-    <button class="theme-corner" data-action="theme" aria-label="Toggle dark mode" aria-pressed="${document.documentElement.dataset.theme === "dark"}">
-      <span class="theme-icon" aria-hidden="true"><span></span></span>
-    </button>
-    <header class="topline">
-      ${state.screen === "test" || state.screen === "results" ? `<a class="back-chip" href="/">&larr; Back to homepage</a>` : ""}
-      <div class="brand" aria-label="Political Prism Test">
-        <strong>Political Prism Test</strong>
-        <span>Map your ideology and the society your instincts point toward.</span>
-      </div>
-    </header>
-    ${content}
-    <footer class="site-footer">
-      <p>&copy; 2026 Political Prism Test. Made by RedeemedSpoon.</p>
-    </footer>
-  `;
-  bindChrome();
-}
-
-function makeLogo() {
-  return `
-    <svg class="site-logo" viewBox="0 0 120 120" aria-hidden="true">
-      <defs>
-        <linearGradient id="logo-fill" x1="0%" y1="20%" x2="100%" y2="90%">
-          <stop offset="0%" stop-color="#b9473f"></stop>
-          <stop offset="52%" stop-color="#5c8558"></stop>
-          <stop offset="100%" stop-color="#426a9e"></stop>
-        </linearGradient>
-      </defs>
-      <polygon points="16,60 94,15 94,105" fill="url(#logo-fill)"></polygon>
-      <path d="M16 60 94 15 94 105 16 60Z" fill="none" stroke="currentColor" stroke-width="4"></path>
-      <path d="M68 60 16 60M68 60 94 15M68 60 94 105" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2"></path>
-      <circle cx="68" cy="60" r="6" fill="currentColor"></circle>
-    </svg>
-  `;
-}
-
-function icon(name) {
-  const paths = {
-    equity: `<path d="M12 4v16M7 8h10M8 8l-4 7h8L8 8Zm8 0-4 7h8l-4-7Z"></path>`,
-    stability: `<path d="M4 20h16M6 20V9l6-5 6 5v11M9 20v-7h6v7"></path>`,
-    freedom: `<path d="M7 11V7a5 5 0 0 1 10 0v4M6 11h12v9H6zM12 15v2"></path>`,
-    triangle: `<path d="M12 3 3 20h18L12 3Zm0 5v7M12 18h.01"></path>`,
-    tension: `<path d="M12 3v18M4 7h16M6 7l-3 6h6L6 7Zm12 0-3 6h6l-3-6Z"></path>`,
-    mirror: `<path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7Zm0 4v6l4 2"></path>`
-  };
-  return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;
-}
-
-function bindChrome() {
-  app.querySelector("[data-action='theme']").addEventListener("click", toggleTheme);
+function initResumeLinks() {
+  const latest = localStorage.getItem("prism-resume-url");
+  if (latest && els.resumeHomeLink) els.resumeHomeLink.href = latest;
 }
 
 function initTheme() {
-  const stored = localStorage.getItem(THEME_KEY);
-  const preference = window.matchMedia?.("(prefers-color-scheme: dark)");
-  const prefersDark = preference?.matches;
-  document.documentElement.dataset.theme = stored || (prefersDark ? "dark" : "light");
-  preference?.addEventListener("change", event => {
-    if (!localStorage.getItem(THEME_KEY)) {
-      document.documentElement.dataset.theme = event.matches ? "dark" : "light";
-    }
+  const stored = localStorage.getItem("prism-theme");
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+  const theme = stored || (prefersDark ? "dark" : "light");
+  setTheme(theme);
+
+  $$("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("prism-theme", next);
+      setTheme(next);
+    });
   });
 }
 
-function toggleTheme() {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem(THEME_KEY, next);
-  app.querySelector("[data-action='theme']").setAttribute("aria-pressed", next === "dark");
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light";
+  $$("[data-theme-toggle]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(document.documentElement.dataset.theme === "dark"));
+  });
 }
 
-function renderLanding() {
-  renderFrame(`
-    <section class="hero">
-      <div>
-        <p class="eyebrow">A political prism for ideal societies</p>
-        <h1>Political Prism Test</h1>
-        <p class="lede">Political beliefs are not only party preferences. They are pictures of the kind of society a person thinks would be just, durable, and humane.</p>
-        <p class="plain-copy">This test maps your answers onto a triangular prism of Equity, Stability, and Freedom, then explains the wing, philosophical family, and ideal society your answers most resemble.</p>
-        <div class="button-row">
-          <button class="btn" data-action="start">Start the test</button>
-          <button class="btn secondary" data-action="resume" ${Object.keys(state.answers).length ? "" : "disabled"}>Resume</button>
+async function loadQuestions() {
+  try {
+    const response = await fetch("questions.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const questions = await response.json();
+    state.questions = questions.slice().sort((a, b) => Number(a.id) - Number(b.id));
+    state.byId = new Map(state.questions.map((question) => [String(question.id), question]));
+  } catch (error) {
+    setStatus("Questions could not be loaded.");
+    console.error(error);
+  }
+}
+
+function initTriangle() {
+  if (!els.triangleCanvas) return;
+  els.viewTabs.forEach((button) => {
+    button.addEventListener("click", () => renderLayer(button.dataset.view));
+  });
+  renderLayer("units");
+}
+
+function initQuizPage() {
+  if (!state.questions.length) return;
+  const parsed = parseQuizUrl();
+  state.seed = parsed.seed || randomSeed();
+  state.order = shuffledQuestionIds(state.seed);
+  state.index = clamp(parsed.index, 0, state.order.length - 1);
+  state.answers = parsed.answers;
+
+  renderAnswerButtons();
+  bindQuizEvents();
+  replaceQuizUrl();
+  renderQuiz();
+}
+
+function initResultsPage() {
+  if (!state.questions.length) return;
+  const parsed = parseResultsUrl();
+  if (!parsed.seed) {
+    renderNoResult();
+    return;
+  }
+
+  state.seed = parsed.seed;
+  state.order = shuffledQuestionIds(state.seed);
+  state.index = 0;
+  state.answers = parsed.answers;
+  state.lastResult = calculateResult();
+
+  if (answeredCount() === 0) {
+    renderNoResult();
+    return;
+  }
+
+  replaceResultsUrl();
+  renderResults(state.lastResult);
+  renderLayer("virtues");
+  if (els.resumeQuiz) els.resumeQuiz.href = quizHref(0);
+}
+
+function bindQuizEvents() {
+  els.prevQuestion?.addEventListener("click", () => moveQuestion(-1));
+  els.nextQuestion?.addEventListener("click", () => moveQuestion(1));
+}
+
+function renderAnswerButtons() {
+  if (!els.answerScale) return;
+  els.answerScale.innerHTML = ANSWER_VALUES.map((choice) => (
+    `<button type="button" data-answer="${choice.value}">${choice.label}</button>`
+  )).join("");
+
+  els.answerScale.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = currentQuestionId();
+      if (!id) return;
+      state.answers[id] = Number(button.dataset.answer);
+      replaceQuizUrl();
+      renderQuiz();
+    });
+  });
+}
+
+function renderQuiz() {
+  const question = currentQuestion();
+  if (!question) return;
+
+  const answered = answeredCount();
+  const progress = (answered / state.questions.length) * 100;
+  if (els.questionCounter) els.questionCounter.textContent = `Question ${state.index + 1} of ${state.order.length} - ${answered} answered`;
+  if (els.seedBadge) els.seedBadge.textContent = `Seed ${state.seed}`;
+  if (els.progressFill) els.progressFill.style.width = `${progress}%`;
+  if (els.questionCategory) els.questionCategory.textContent = `${question.meta_category} / ${question.primary_subtype}`;
+  if (els.questionText) els.questionText.textContent = question.text;
+  if (els.prevQuestion) els.prevQuestion.disabled = state.index === 0;
+  const currentAnswered = Number.isFinite(state.answers[String(question.id)]);
+  if (els.nextQuestion) {
+    els.nextQuestion.disabled = !currentAnswered;
+    els.nextQuestion.querySelector("span:first-child").textContent = state.index >= state.order.length - 1 ? "Results" : "Next";
+  }
+  setStatus(answered ? `${answered} answer${answered === 1 ? "" : "s"} recorded.` : "No answers recorded yet.");
+
+  const selected = state.answers[String(question.id)];
+  els.answerScale?.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("is-selected", Number(button.dataset.answer) === selected);
+  });
+}
+
+function moveQuestion(delta) {
+  if (delta > 0 && !Number.isFinite(state.answers[currentQuestionId()])) return;
+  if (delta > 0 && state.index >= state.order.length - 1) {
+    window.location.href = resultsHref();
+    return;
+  }
+  state.index = clamp(state.index + delta, 0, state.order.length - 1);
+  replaceQuizUrl();
+  renderQuiz();
+}
+
+function renderNoResult() {
+  if (els.resultSummary) els.resultSummary.textContent = "No result state was found. Start the quiz to generate a shareable result.";
+  if (els.resultBars) els.resultBars.innerHTML = "";
+  if (els.resultReading) {
+    els.resultReading.innerHTML = `
+      <h2>No result yet</h2>
+      <p>The results page expects a compact result URL from the quiz.</p>
+      <a class="command primary" href="quiz.html">Start quiz</a>
+    `;
+  }
+}
+
+function renderResults(result) {
+  const [first, second, third] = result.ranking;
+  const name = result.isBalanced
+    ? "Triangular Balancer"
+    : (RESULT_NAMES[first.axis]?.[second.axis] || `${AXES[first.axis].label} First`);
+
+  if (els.resultSummary) {
+    els.resultSummary.textContent = `${name}: you protect ${AXES[first.axis].label} first, tolerate ${AXES[second.axis].label} second, and are most willing to sacrifice ${AXES[third.axis].label}.`;
+  }
+
+  if (els.resultBars) {
+    els.resultBars.innerHTML = DISPLAY_ORDER.map((axis) => `
+      <div class="score-row">
+        <div class="score-top">
+          <span>${AXES[axis].label}</span>
+          <span>${Math.round(result.weights[axis] * 100)}%</span>
+        </div>
+        <div class="score-track">
+          <span style="width:${Math.round(result.weights[axis] * 100)}%; background:${AXES[axis].color}"></span>
         </div>
       </div>
-      <div class="prism-wrap">${makePrism()}</div>
-    </section>
-    <section class="axis-rows" aria-label="Three prism axes">
-      <article>${icon("equity")}<div><b style="color: var(--equity)">Equity</b><p>Measures how strongly you want society to correct domination, deprivation, inherited advantage, exclusion, and unequal access.</p></div></article>
-      <article>${icon("stability")}<div><b style="color: var(--stability)">Stability</b><p>Measures how strongly you value law, continuity, institutions, social trust, public order, competence, and shared norms.</p></div></article>
-      <article>${icon("freedom")}<div><b style="color: var(--freedom)">Freedom</b><p>Measures how strongly you protect speech, property, bodily authority, exit rights, voluntary exchange, and decentralization.</p></div></article>
-    </section>
-    <section class="text-section">
-      <p class="eyebrow">Why another political test?</p>
-      <h2>A triangle catches what one-line maps miss.</h2>
-      <p>Most political tests inherit the limits of the left-right line. They can tell you whether you sound more progressive, conservative, libertarian, or authoritarian, but they often blur together different political reasons for reaching the same answer.</p>
-      <p>The Political Prism separates three durable questions: who deserves protection from hierarchy, what keeps a society from falling apart, and where the individual must remain sovereign. Those questions have shaped arguments about republics, monarchies, markets, socialism, liberalism, nationalism, and civic order for centuries.</p>
-      <p>A one-line map turns politics into a tug-of-war. The prism shows when two camps share a policy but not a motive, or share a motive but not a political structure. Its labels are interpretive, not final; they are there to orient you on the map, not to pronounce a permanent identity.</p>
-    </section>
-    ${makeReadingGuide()}
-    <section class="selling-cards" aria-label="Other details">
-      <article>${icon("triangle")}<b>Open source</b><p>The model can be inspected, criticized, forked, and improved.</p></article>
-      <article>${icon("mirror")}<b>Local only</b><p>Your answers are calculated in the browser. The site does not need an account or backend.</p></article>
-      <article>${icon("freedom")}<b>Sharable</b><p>Result links preserve the same prism location so you can compare maps with others.</p></article>
-    </section>
-    <section class="final-cta">
-      ${makeLogo()}
-      <p class="eyebrow">Ready to map your ideal society?</p>
-      <h2>Take the test and see where your politics lands.</h2>
-      <button class="btn" data-action="start-bottom">Start the test</button>
-    </section>
-  `);
-  app.querySelector("[data-action='start']").addEventListener("click", startNewTest);
-  app.querySelector("[data-action='start-bottom']").addEventListener("click", startNewTest);
-  app.querySelector("[data-action='resume']").addEventListener("click", () => {
-    state.screen = "test";
-    render();
+    `).join("");
+  }
+
+  if (els.resultReading) {
+    els.resultReading.innerHTML = `
+      <h2>${name}</h2>
+      <p>${escapeHtml(result.isBalanced ? "Your answers sit near the center of the prism. You resist letting any single virtue devour the other two." : AXES[first.axis].summary)}</p>
+      <dl>
+        <dt>Protects first</dt>
+        <dd>${AXES[first.axis].label}: ${escapeHtml(AXES[first.axis].summary)}</dd>
+        <dt>Tolerates second</dt>
+        <dd>${AXES[second.axis].label} remains a real concern, but usually after ${AXES[first.axis].label} is secured.</dd>
+        <dt>Sacrifices most</dt>
+        <dd>${AXES[third.axis].label} is the pole your answers most often trade away under pressure.</dd>
+        <dt>Likely blind spot</dt>
+        <dd>${escapeHtml(AXES[first.axis].blindSpot)}</dd>
+        <dt>Answered</dt>
+        <dd>${result.answered} of ${state.questions.length} questions using seed ${escapeHtml(state.seed)}.</dd>
+      </dl>
+    `;
+  }
+
+  els.copyResultLink?.addEventListener("click", () => copyLink(new URL(resultsHref(), window.location.href).href, "Result link copied."));
+}
+
+function renderLayer(view, selectedId) {
+  if (!els.triangleCanvas) return;
+  const layer = LAYERS[view] || LAYERS.virtues;
+  state.activeView = view;
+  state.selectedPointId = selectedId || state.selectedPointId || layer.points[0].id;
+  if (!layer.points.some((point) => point.id === state.selectedPointId)) {
+    state.selectedPointId = layer.points[0].id;
+  }
+
+  els.viewTabs.forEach((button) => {
+    button.setAttribute("aria-selected", String(button.dataset.view === view));
+  });
+
+  if (els.layerEyebrow) els.layerEyebrow.textContent = layer.eyebrow;
+  if (els.layerTitle) els.layerTitle.textContent = layer.title;
+  if (els.layerDescription) els.layerDescription.textContent = layer.description;
+  renderTriangle(layer);
+  renderPointList(layer);
+  renderSelectedPoint(layer.points.find((point) => point.id === state.selectedPointId));
+}
+
+function renderTriangle(layer) {
+  const width = 620;
+  const height = 620;
+  const vertices = DISPLAY_ORDER.map((axis) => AXES[axis].vertex);
+  const resultPoint = state.lastResult ? pointFromWeights(state.lastResult.weights) : null;
+  const nodes = layer.points.map((point) => renderSvgNode(point)).join("");
+  const resultMarkup = resultPoint ? `
+    <g class="tri-result" transform="translate(${resultPoint.x} ${resultPoint.y})">
+      <circle class="tri-result-ring" r="18"></circle>
+      <circle r="8" fill="var(--ink)"></circle>
+      <rect x="16" y="-20" width="82" height="26" rx="6" fill="var(--paper-strong)" stroke="var(--ink)"></rect>
+      <text x="26" y="-3" class="tri-node-label">Your result</text>
+    </g>
+  ` : "";
+
+  els.triangleCanvas.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${layer.title}">
+      <defs>
+        <linearGradient id="prismWash" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stop-color="${AXES.equality.color}" stop-opacity="0.2"></stop>
+          <stop offset="48%" stop-color="${AXES.freedom.color}" stop-opacity="0.18"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}" stop-opacity="0.2"></stop>
+        </linearGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="transparent"></rect>
+      <polygon points="${pointsAttr(vertices)}" fill="url(#prismWash)"></polygon>
+      ${buildGridLines()}
+      <polygon class="tri-boundary" points="${pointsAttr(vertices)}"></polygon>
+      ${renderAxisLabels()}
+      ${nodes}
+      ${resultMarkup}
+    </svg>
+  `;
+
+  els.triangleCanvas.querySelectorAll(".tri-node").forEach((node) => {
+    const id = node.dataset.point;
+    node.addEventListener("click", () => renderLayer(state.activeView, id));
+    node.addEventListener("mouseenter", () => renderSelectedPoint(layer.points.find((point) => point.id === id)));
+    node.addEventListener("focus", () => renderSelectedPoint(layer.points.find((point) => point.id === id)));
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        renderLayer(state.activeView, id);
+      }
+    });
   });
 }
 
-function makeReadingGuide() {
+function renderSvgNode(point) {
+  const position = pointFromWeights(point.weights);
+  const selected = point.id === state.selectedPointId ? " is-selected" : "";
+  const color = AXES[point.tone]?.color || "var(--ink)";
+  const labelWidth = Math.max(56, point.label.length * 7 + 18);
+  const labelHeight = 24;
+  const dx = point.dx ?? 12;
+  const dy = point.dy ?? -12;
+
   return `
-    <section class="text-section reading-section">
-      <div class="guide-copy">${readingGuideHtml}</div>
-    </section>
+    <g class="tri-node${selected}" data-point="${point.id}" tabindex="0" role="button" aria-label="${escapeHtml(point.label)}" transform="translate(${position.x} ${position.y})">
+      <line x1="0" y1="0" x2="${dx}" y2="${dy}" stroke="${color}" stroke-opacity="0.46" stroke-width="1"></line>
+      <circle class="tri-node-dot" r="6.5" fill="${color}"></circle>
+      <rect class="tri-node-label-bg" x="${dx}" y="${dy - labelHeight + 5}" width="${labelWidth}" height="${labelHeight}" rx="6"></rect>
+      <text class="tri-node-label" x="${dx + 9}" y="${dy - 5}">${escapeHtml(point.label)}</text>
+    </g>
   `;
 }
 
-function markdownToHtml(markdown) {
-  let headingCount = 0;
-  let openArticle = false;
-  const blocks = markdown.trim().split(/\n{2,}/);
-  const html = blocks.map(block => {
-    const text = block.replace(/\n/g, " ").trim();
-    if (text.startsWith("## ")) {
-      headingCount += 1;
-      const heading = renderInlineMarkdown(text.slice(3));
-      if (headingCount === 1) return `<h2>${heading}</h2>`;
-      const prefix = openArticle ? "</article>" : "";
-      openArticle = true;
-      return `${prefix}<article><h3>${heading}</h3>`;
-    }
-    return `<p>${renderInlineMarkdown(text)}</p>`;
+function renderAxisLabels() {
+  return DISPLAY_ORDER.map((axis) => {
+    const data = AXES[axis];
+    const v = data.vertex;
+    const offsets = {
+      freedom: { x: 42, y: -28, anchor: "end" },
+      equality: { x: -54, y: -14, anchor: "start" },
+      stability: { x: 42, y: 42, anchor: "end" }
+    }[axis];
+    const noteOffsets = {
+      freedom: { x: 42, y: -8, anchor: "end" },
+      equality: { x: -54, y: 6, anchor: "start" },
+      stability: { x: 42, y: 62, anchor: "end" }
+    }[axis];
+
+    return `
+      <g>
+        <circle cx="${v.x}" cy="${v.y}" r="10" fill="${data.color}" stroke="var(--inverse)" stroke-width="3"></circle>
+        <text class="tri-axis-label" x="${v.x + offsets.x}" y="${v.y + offsets.y}" text-anchor="${offsets.anchor}">${data.label}</text>
+        <text class="tri-axis-note" x="${v.x + noteOffsets.x}" y="${v.y + noteOffsets.y}" text-anchor="${noteOffsets.anchor}">${data.note}</text>
+      </g>
+    `;
   }).join("");
-  return openArticle ? `${html}</article>` : html;
 }
 
-function renderInlineMarkdown(text) {
-  return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
-}
-
-function startNewTest() {
-  state.seed = makeSeed();
-  state.order = seededOrder(state.seed, questions);
-  state.answers = {};
-  state.index = 0;
-  state.screen = "test";
-  history.replaceState(null, "", `?seed=${encodeURIComponent(state.seed)}`);
-  persist();
-  render();
-}
-
-function renderTest() {
-  const completedCount = getCompletedCount();
-  const question = questions.find(q => q.id === state.order[state.index]);
-  const selected = state.answers[question.id];
-  const progress = getProgressPercent(completedCount);
-  renderFrame(`
-    <section class="test-shell">
-      <div class="progress-row">
-        <span>Question ${state.index + 1} of ${questions.length}</span>
-        <span>${completedCount} answered</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-      <article class="question-panel">
-        <p class="eyebrow">Use keys 1-5, or select an answer</p>
-        <h2 class="question-text">${escapeHtml(question.text)}</h2>
-        <div class="scale" role="radiogroup" aria-label="Answer scale">
-          ${ANSWER_VALUES.map((value, index) => `
-            <button class="choice ${selected === value ? "selected" : ""}" data-value="${value}" role="radio" aria-checked="${selected === value}">
-              ${ANSWER_LABELS[index]}
-            </button>
-          `).join("")}
-        </div>
-        <div class="nav-row">
-          <button class="btn secondary" data-action="previous" ${state.index === 0 ? "disabled" : ""}>&larr; Previous</button>
-          <button class="btn" data-action="next" ${Number.isFinite(selected) ? "" : "disabled"}>${state.index === questions.length - 1 ? "See result" : "Next &rarr;"}</button>
-        </div>
-      </article>
-    </section>
-  `);
-
-  app.querySelectorAll(".choice").forEach(button => {
-    button.addEventListener("click", () => answerCurrent(Number(button.dataset.value)));
+function renderPointList(layer) {
+  if (!els.pointList) return;
+  els.pointList.innerHTML = layer.points.map((point) => `
+    <button type="button" class="${point.id === state.selectedPointId ? "is-selected" : ""}" data-point="${point.id}">
+      ${escapeHtml(point.label)}
+    </button>
+  `).join("");
+  els.pointList.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => renderLayer(state.activeView, button.dataset.point));
   });
-  app.querySelector("[data-action='previous']").addEventListener("click", () => {
-    transitionQuestion("back", () => {
-      state.index = Math.max(0, state.index - 1);
-      persist();
-      render();
-    });
+}
+
+function renderSelectedPoint(point) {
+  if (!point || !els.selectedPoint) return;
+  const weights = DISPLAY_ORDER
+    .map((axis) => `${AXES[axis].short} ${Math.round((point.weights[axis] || 0) * 100)}%`)
+    .join(" / ");
+  els.selectedPoint.innerHTML = `
+    <p class="selected-label">Selected point</p>
+    <h4>${escapeHtml(point.label)}</h4>
+    <p>${escapeHtml(point.text)}</p>
+    <p class="mix-line">${weights}</p>
+  `;
+}
+
+function buildGridLines() {
+  const lines = [];
+  [0.25, 0.5, 0.75].forEach((value) => {
+    const f1 = pointFromWeights({ freedom: value, equality: 0, stability: 1 - value });
+    const f2 = pointFromWeights({ freedom: value, equality: 1 - value, stability: 0 });
+    const e1 = pointFromWeights({ freedom: 0, equality: value, stability: 1 - value });
+    const e2 = pointFromWeights({ freedom: 1 - value, equality: value, stability: 0 });
+    const s1 = pointFromWeights({ freedom: 0, equality: 1 - value, stability: value });
+    const s2 = pointFromWeights({ freedom: 1 - value, equality: 0, stability: value });
+    lines.push(`<line class="tri-grid" x1="${f1.x}" y1="${f1.y}" x2="${f2.x}" y2="${f2.y}"></line>`);
+    lines.push(`<line class="tri-grid" x1="${e1.x}" y1="${e1.y}" x2="${e2.x}" y2="${e2.y}"></line>`);
+    lines.push(`<line class="tri-grid" x1="${s1.x}" y1="${s1.y}" x2="${s2.x}" y2="${s2.y}"></line>`);
   });
-  app.querySelector("[data-action='next']").addEventListener("click", nextQuestion);
-}
-
-function getCompletedCount() {
-  return clamp(state.index, 0, questions.length);
-}
-
-function getProgressPercent(completedCount = getCompletedCount()) {
-  return Math.round((completedCount / questions.length) * 100);
-}
-
-function answerCurrent(value) {
-  const id = state.order[state.index];
-  state.answers[id] = value;
-  persist();
-  app.querySelectorAll(".choice").forEach(button => {
-    const selected = Number(button.dataset.value) === value;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-checked", selected);
-  });
-  app.querySelector("[data-action='next']")?.removeAttribute("disabled");
-}
-
-function nextQuestion() {
-  const id = state.order[state.index];
-  if (!Number.isFinite(state.answers[id])) return;
-  if (state.index < questions.length - 1) {
-    transitionQuestion("forward", () => {
-      state.index += 1;
-      persist();
-      render();
-    });
-    return;
-  }
-  showResults();
-}
-
-function transitionQuestion(direction, callback) {
-  const panel = app.querySelector(".question-panel");
-  if (!panel) {
-    callback();
-    return;
-  }
-  panel.classList.add(direction === "back" ? "slide-out-right" : "slide-out-left");
-  window.setTimeout(callback, 180);
-}
-
-function showResults() {
-  if (Object.keys(state.answers).length < questions.length) {
-    const unanswered = state.order.findIndex(id => !Number.isFinite(state.answers[id]));
-    state.index = Math.max(0, unanswered);
-    state.screen = "test";
-    persist();
-    render();
-    return;
-  }
-  state.screen = "results";
-  state.index = questions.length - 1;
-  const url = makeShareUrl();
-  history.replaceState(null, "", url);
-  persist();
-  render();
-}
-
-function renderResults() {
-  const result = calculateResult();
-  renderFrame(`
-    <section class="results-layout">
-      <div>
-        <div class="result-summary">
-          <p class="result-kicker">Dominant wing or mix</p>
-          <h1 class="result-title">${escapeHtml(result.wing)}</h1>
-          <p class="lede">${escapeHtml(result.summary)}</p>
-        </div>
-        <div class="prism-wrap">${makePrism(result.point)}</div>
-        <div class="weights">
-          ${POLES.map((pole, index) => `
-            <div class="weight">
-              <span>${pole}</span>
-              <span class="meter"><span class="${pole[0].toLowerCase()}" style="width:${Math.round(result.weights[index] * 100)}%"></span></span>
-              <b>${Math.round(result.weights[index] * 100)}%</b>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-      <div class="result-panels">
-        <section class="panel">
-          <h3>Closest philosophy labels</h3>
-          <p>Your answers ${escapeHtml(result.labelVerb)} these labels. They are approximations, not objective identities.</p>
-          <div class="tag-list">${result.labels.map(label => `<span class="tag">${escapeHtml(label)}</span>`).join("")}</div>
-        </section>
-        <section class="panel">
-          <h3>Subtype drivers</h3>
-          <ul>${result.drivers.map(driver => `<li>${escapeHtml(driver)}</li>`).join("")}</ul>
-        </section>
-        <section class="panel">
-          <h3>Commitment profile</h3>
-          <p><b>${escapeHtml(result.profile.title)}.</b> ${escapeHtml(result.profile.text)}</p>
-          <p>${escapeHtml(result.giveUp)}</p>
-        </section>
-        <section class="panel">
-          <h3>Strengths, costs, blind spots</h3>
-          <p>${escapeHtml(result.tradeoff)}</p>
-        </section>
-        <section class="panel">
-          <h3>Share</h3>
-          <p>Share this result as a snapshot of your answers. Anyone who opens the link sees the same prism location.</p>
-          <div class="button-row">
-            <button class="btn" data-action="share">Share result</button>
-            <button class="btn secondary" data-action="edit">Edit answers</button>
-            <button class="btn secondary" data-action="restart">Retake</button>
-          </div>
-          <p class="toast" id="toast"></p>
-        </section>
-      </div>
-    </section>
-  `);
-
-  app.querySelector("[data-action='share']").addEventListener("click", shareResult);
-  app.querySelector("[data-action='edit']").addEventListener("click", () => {
-    state.screen = "test";
-    state.index = 0;
-    persist();
-    render();
-  });
-  app.querySelector("[data-action='restart']").addEventListener("click", startNewTest);
+  return lines.join("");
 }
 
 function calculateResult() {
-  const raw = [0, 0, 0];
-  const subtypeScores = new Map();
-  const answered = questions.filter(q => Number.isFinite(state.answers[q.id]));
+  const raw = { freedom: 0, equality: 0, stability: 0 };
+  let answered = 0;
 
-  answered.forEach(question => {
-    const answer = state.answers[question.id];
-    question.vector.forEach((value, index) => {
-      raw[index] += answer * value;
+  Object.entries(state.answers).forEach(([id, value]) => {
+    const question = state.byId.get(String(id));
+    if (!question || !Number.isFinite(value)) return;
+    answered += 1;
+    VECTOR_ORDER.forEach((axis, index) => {
+      raw[axis] += Number(question.vector[index]) * value;
     });
-    const contribution = answer * Math.max(...question.vector.map(Math.abs));
-    subtypeScores.set(question.primary_subtype, (subtypeScores.get(question.primary_subtype) || 0) + contribution);
   });
 
-  const weights = normalizeRaw(raw, bounds);
-  const point = {
-    x: weights[0] * VERTICES.Equity.x + weights[1] * VERTICES.Stability.x + weights[2] * VERTICES.Freedom.x,
-    y: weights[0] * VERTICES.Equity.y + weights[1] * VERTICES.Stability.y + weights[2] * VERTICES.Freedom.y
-  };
-  const wing = classifyWing(weights);
-  const drivers = topDrivers(subtypeScores);
-  const profile = classifyProfile(answered);
-  const labels = chooseLabels(wing, drivers, weights);
+  const weights = normalizeRawScores(raw, answered);
+  const ranking = DISPLAY_ORDER
+    .map((axis) => ({ axis, value: weights[axis] }))
+    .sort((a, b) => b.value - a.value);
   return {
     raw,
     weights,
-    point,
-    wing,
-    drivers,
-    profile,
-    labels,
-    labelVerb: labelVerb(weights),
-    giveUp: detectGiveUp(answered, wing),
-    summary: makeSummary(wing, weights),
-    tradeoff: makeTradeoff(wing)
+    ranking,
+    answered,
+    isBalanced: ranking[0].value - ranking[2].value < 0.09
   };
 }
 
-function normalizeRaw(raw, computedBounds) {
-  const shifted = raw.map((value, index) => {
-    const range = computedBounds.max[index] - computedBounds.min[index];
-    return range ? (value - computedBounds.min[index]) / range : 0.5;
-  });
-  const total = shifted.reduce((sum, value) => sum + value, 0) || 1;
-  return shifted.map(value => value / total);
-}
-
-function computeBounds(items) {
-  const min = [0, 0, 0];
-  const max = [0, 0, 0];
-  items.forEach(question => {
-    question.vector.forEach((value, index) => {
-      const a = -2 * value;
-      const b = 2 * value;
-      min[index] += Math.min(a, b);
-      max[index] += Math.max(a, b);
-    });
-  });
-  return { min, max };
-}
-
-function classifyWing(weights) {
-  const ranked = weights.map((value, index) => ({ value, pole: POLES[index] })).sort((a, b) => b.value - a.value);
-  if (ranked[0].value - ranked[2].value < 0.12) return "Center / mixed";
-  if (ranked[0].value - ranked[1].value >= 0.12) return ranked[0].pole;
-  if (ranked[0].value - ranked[1].value <= 0.12 && ranked[1].value - ranked[2].value >= 0.10) {
-    return [ranked[0].pole, ranked[1].pole].sort(byPoleOrder).join("-");
+function normalizeRawScores(raw, answered) {
+  if (!answered) return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
+  const average = DISPLAY_ORDER.map((axis) => raw[axis] / answered);
+  if (Math.max(...average.map((value) => Math.abs(value))) < 0.000001) {
+    return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
   }
-  return "Center / mixed";
-}
-
-function byPoleOrder(a, b) {
-  return POLES.indexOf(a) - POLES.indexOf(b);
-}
-
-function topDrivers(scores) {
-  const ranked = [...scores.entries()]
-    .filter(([, score]) => Math.abs(score) > 0.01)
-    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-    .slice(0, 6);
-  if (!ranked.length) return ["Neutral answers muted the subtype signals."];
-  return ranked.map(([name, score]) => `${score >= 0 ? "High" : "Low"} ${name}`);
-}
-
-function classifyProfile(answered) {
-  const pairs = groupBy(answered, q => q.pair_id).filter(group => group.length > 1);
-  let aligned = 0;
-  let reversed = 0;
-  pairs.forEach(group => {
-    for (let i = 0; i < group.length; i += 1) {
-      for (let j = i + 1; j < group.length; j += 1) {
-        const a = contributionVector(group[i]);
-        const b = contributionVector(group[j]);
-        const similarity = cosine(a, b);
-        if (similarity > 0.35) aligned += 1;
-        if (similarity < -0.25) reversed += 1;
-      }
-    }
-  });
-
-  const costQuestions = answered.filter(q => q.meta_category === "Cost of Principle");
-  const costStrength = costQuestions.reduce((sum, q) => sum + Math.abs(state.answers[q.id]), 0) / Math.max(1, costQuestions.length * 2);
-
-  if (reversed > aligned * 0.75 && reversed >= 3) {
-    return {
-      title: "Conflicted profile",
-      text: "Several paired answers reverse direction across principle, enforcement, and cost scenarios. The result is real, but your internal constraints are doing a lot of work."
-    };
-  }
-  if (reversed >= 2 || costStrength < 0.42) {
-    return {
-      title: "Conditional pragmatist",
-      text: "You hold identifiable commitments, but they weaken when enforcement, crisis, fiscal cost, public health, or security pressure enters the case."
-    };
-  }
+  const min = Math.min(...average);
+  const max = Math.max(...average);
+  const floor = Math.max(0.08, (max - min) * 0.16);
+  const shifted = average.map((value) => value - min + floor);
+  const total = shifted.reduce((sum, value) => sum + value, 0);
   return {
-    title: "Idealist / high cost-tolerance",
-    text: "Your paired answers tend to point in the same direction, including on uglier cost-of-principle questions."
+    freedom: shifted[DISPLAY_ORDER.indexOf("freedom")] / total,
+    equality: shifted[DISPLAY_ORDER.indexOf("equality")] / total,
+    stability: shifted[DISPLAY_ORDER.indexOf("stability")] / total
   };
 }
 
-function contributionVector(question) {
-  const answer = state.answers[question.id] || 0;
-  return question.vector.map(value => value * answer);
-}
-
-function detectGiveUp(answered, wing) {
-  if (wing === "Center / mixed") {
-    return "No single wing dominates enough to identify one clean sacrifice point. Your answers distribute constraint across the prism.";
-  }
-  const dominant = wing.split("-")[0];
-  const dominantIndex = POLES.indexOf(dominant);
-  const reversals = answered
-    .map(question => ({ question, contribution: state.answers[question.id] * question.vector[dominantIndex] }))
-    .filter(item => item.contribution < -0.5)
-    .sort((a, b) => a.contribution - b.contribution)
-    .slice(0, 2);
-  if (!reversals.length) {
-    return `Your ${dominant} commitments rarely reverse hard in the answered set; the main sacrifice is carried by the other poles rather than a specific exception.`;
-  }
-  const contexts = reversals.map(item => item.question.meta_category.toLowerCase()).join(" and ");
-  return `Your ${dominant} commitments give ground most visibly under ${contexts} pressure.`;
-}
-
-function chooseLabels(wing, drivers, weights) {
-  const text = drivers.join(" ").toLowerCase();
-  const lowEquity = weights[0] < 0.29;
-  const lowStability = weights[1] < 0.29;
-  const lowFreedom = weights[2] < 0.29;
-  const labels = [];
-
-  if (wing === "Freedom" && /property|market|corporate|financial/.test(text) && lowEquity) {
-    labels.push("right-libertarian", "market radical", "anarcho-capitalist-leaning");
-  } else if (wing === "Freedom" && /speech|bodily|personal/.test(text)) {
-    labels.push("civil libertarian", "anti-paternalist", "left-libertarian-leaning");
-  } else if (wing === "Equity" && /economic|housing|labor|tax|educational/.test(text)) {
-    labels.push("social democrat", "democratic socialist-leaning", "welfare-statist egalitarian");
-  } else if (wing === "Equity" && /activism|systemic/.test(text) && lowStability) {
-    labels.push("radical progressive", "egalitarian disruptor", "anti-institutional left");
-  } else if (wing === "Stability" && /cultural|law|social trust|community/.test(text)) {
-    labels.push("traditional conservative", "communitarian conservative", "order-first conservative");
-  } else if (wing === "Stability" && /systemic|infrastructure|public health|fiscal/.test(text)) {
-    labels.push("technocratic institutionalist", "developmentalist", "state-capacity-oriented");
-  } else if (wing === "Stability" && lowFreedom) {
-    labels.push("authoritarian-leaning", "security-statist", "order maximalist");
-  } else if (wing === "Equity-Stability" || (weights[0] > .35 && weights[1] > .35 && lowFreedom)) {
-    labels.push("paternalist social democrat", "state-centered egalitarian", "technocratic welfare-statist");
-  } else if (wing === "Stability-Freedom" || (weights[1] > .35 && weights[2] > .35 && lowEquity)) {
-    labels.push("conservative libertarian", "localist right", "property-order fusionist");
-  } else if (wing === "Equity-Freedom" || (weights[0] > .35 && weights[2] > .35 && lowStability)) {
-    labels.push("libertarian socialist-leaning", "civil-libertarian progressive", "anti-gatekeeping egalitarian");
-  } else {
-    labels.push("mixed institutionalist", "conditional pluralist", "pragmatic centrist");
+function parseQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const legacySeed = params.get("seed");
+  if (legacySeed) {
+    return {
+      seed: normalizeSeed(legacySeed),
+      index: Number(params.get("i") || 0),
+      answers: decodeAnswers(params.get("a") || "")
+    };
   }
 
-  return labels.slice(0, 3);
-}
-
-function labelVerb(weights) {
-  const spread = Math.max(...weights) - Math.min(...weights);
-  if (spread < 0.12) return "loosely resemble";
-  if (spread < 0.22) return "share traits with";
-  return "are closest to";
-}
-
-function makeSummary(wing, weights) {
-  if (wing === "Center / mixed") {
-    return "Your answers stay near the central cluster. That usually means either balanced pluralism, strong context-dependence, or unresolved tension between the three teloi.";
-  }
-  const sacrifice = POLES[weights.indexOf(Math.min(...weights))];
-  return `Your map leans toward ${wing}. In this answer set, ${sacrifice} is the pole most often subordinated when priorities conflict.`;
-}
-
-function makeTradeoff(wing) {
-  const copy = {
-    Equity: "This orientation protects people against inherited advantage, deprivation, and exclusion. Its cost is a higher tolerance for overriding property, local continuity, or voluntary sorting when those produce unequal outcomes.",
-    Stability: "This orientation protects continuity, public order, institutional competence, and shared norms. Its blind spot is that safety and cohesion can become excuses for hierarchy, surveillance, or blocked reform.",
-    Freedom: "This orientation protects speech, exit, property, bodily autonomy, and voluntary exchange. Its cost is a greater willingness to accept unequal, unstable, or harsh outcomes as the price of agency.",
-    "Equity-Stability": "This mix protects material security and institutional order together. It can build state capacity, but it risks paternalism when autonomy is treated as the negotiable value.",
-    "Equity-Freedom": "This mix protects access and autonomy while distrusting gatekeeping institutions. It can be emancipatory, but it may underestimate coordination problems and public-order costs.",
-    "Stability-Freedom": "This mix protects property, local authority, continuity, and exit rights. It can preserve trust and agency, but may tolerate inherited inequality or exclusion as acceptable background conditions.",
-    "Center / mixed": "The center protects optionality and context. Its strength is caution; its weakness is that hard scarcity can force choices that moderation prefers to postpone."
+  const raw = params.get("q") || "";
+  const [seed, index, answers = ""] = raw.split(".");
+  return {
+    seed: seed ? normalizeSeed(seed) : "",
+    index: Number(index || 0),
+    answers: decodeAnswers(answers)
   };
-  return copy[wing] || copy["Center / mixed"];
 }
 
-function makeShareUrl() {
-  const params = new URLSearchParams();
-  params.set("seed", state.seed);
-  params.set("a", encodeAnswers(state.answers, questions));
-  return `${location.pathname}?${params.toString()}`;
-}
-
-function shareResult() {
-  const fullUrl = `${location.origin}${makeShareUrl()}`;
-  const toast = app.querySelector("#toast");
-  const showToast = message => {
-    if (!toast) return;
-    toast.textContent = message;
-    window.setTimeout(() => {
-      if (toast.textContent === message) toast.textContent = "";
-    }, TOAST_TIMEOUT_MS);
-  };
-  if (navigator.share) {
-    navigator.share({ title: "Political Prism Test result", url: fullUrl }).catch(() => {});
+function parseResultsUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const legacySeed = params.get("seed");
+  if (legacySeed) {
+    return {
+      seed: normalizeSeed(legacySeed),
+      answers: decodeAnswers(params.get("a") || "")
+    };
   }
-  navigator.clipboard?.writeText(fullUrl).then(() => {
-    showToast("Result link copied.");
-  }).catch(() => {
-    showToast(fullUrl);
+
+  const raw = params.get("r") || "";
+  const [seed, answers = ""] = raw.split(".");
+  return {
+    seed: seed ? normalizeSeed(seed) : "",
+    answers: decodeAnswers(answers)
+  };
+}
+
+function replaceQuizUrl() {
+  const href = quizHref(state.index);
+  localStorage.setItem("prism-resume-url", href);
+  window.history.replaceState(null, "", href);
+}
+
+function replaceResultsUrl() {
+  window.history.replaceState(null, "", resultsHref());
+}
+
+function quizHref(index) {
+  const encoded = encodeAnswers(state.answers);
+  const parts = [state.seed, String(clamp(index, 0, Math.max(0, state.order.length - 1)))];
+  if (encoded) parts.push(encoded);
+  return `quiz.html?q=${encodeURIComponent(parts.join("."))}`;
+}
+
+function resultsHref() {
+  return `results.html?r=${encodeURIComponent([state.seed, encodeAnswers(state.answers)].join("."))}`;
+}
+
+function encodeAnswers(answers) {
+  const byValue = new Map([[-2, "0"], [-1, "1"], [0, "2"], [1, "3"], [2, "4"]]);
+  return state.questions
+    .map((question) => byValue.get(answers[String(question.id)]) || "x")
+    .join("")
+    .replace(/x+$/, "");
+}
+
+function decodeAnswers(encoded) {
+  const byChar = new Map([["0", -2], ["1", -1], ["2", 0], ["3", 1], ["4", 2]]);
+  const answers = {};
+  state.questions.forEach((question, index) => {
+    const value = byChar.get(encoded[index]);
+    if (Number.isFinite(value)) answers[String(question.id)] = value;
   });
+  return answers;
 }
 
-function makePrism(point) {
-  const template = document.querySelector("#prism-template");
-  const fragment = template.content.cloneNode(true);
-  if (point) {
-    const group = fragment.querySelector(".result-point");
-    group.removeAttribute("hidden");
-    group.querySelector(".point-guide").setAttribute("x1", point.x);
-    group.querySelector(".point-guide").setAttribute("y1", point.y);
-    group.querySelector(".point-guide").setAttribute("x2", 559);
-    group.querySelector(".point-guide").setAttribute("y2", 520);
-    group.querySelectorAll("circle").forEach(circle => {
-      circle.setAttribute("cx", point.x);
-      circle.setAttribute("cy", point.y);
-    });
-    const label = group.querySelector(".point-label");
-    const labelOnLeft = point.x > 700;
-    label.setAttribute("x", labelOnLeft ? point.x - 38 : point.x + 38);
-    label.setAttribute("y", point.y + 8);
-    label.setAttribute("text-anchor", labelOnLeft ? "end" : "start");
+function currentQuestionId() {
+  return state.order[state.index] ? String(state.order[state.index]) : null;
+}
+
+function currentQuestion() {
+  return state.byId.get(currentQuestionId());
+}
+
+function answeredCount() {
+  return Object.keys(state.answers).filter((id) => Number.isFinite(state.answers[id])).length;
+}
+
+function shuffledQuestionIds(seed) {
+  const ids = state.questions.map((question) => String(question.id));
+  const rng = mulberry32(hashSeed(seed));
+  for (let index = ids.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(rng() * (index + 1));
+    [ids[index], ids[swap]] = [ids[swap], ids[index]];
   }
-  const wrapper = document.createElement("div");
-  wrapper.append(fragment);
-  return wrapper.innerHTML;
+  return ids;
 }
 
-function onKeydown(event) {
-  if (state.screen !== "test") return;
-  const key = Number(event.key);
-  if (key >= 1 && key <= 5) {
-    answerCurrent(ANSWER_VALUES[key - 1]);
-  } else if (event.key === "ArrowLeft") {
-    transitionQuestion("back", () => {
-      state.index = Math.max(0, state.index - 1);
-      persist();
-      render();
-    });
-  } else if (event.key === "ArrowRight") {
-    nextQuestion();
+function pointFromWeights(weights) {
+  const total = DISPLAY_ORDER.reduce((sum, axis) => sum + (weights[axis] || 0), 0) || 1;
+  return DISPLAY_ORDER.reduce((point, axis) => {
+    const share = (weights[axis] || 0) / total;
+    point.x += AXES[axis].vertex.x * share;
+    point.y += AXES[axis].vertex.y * share;
+    return point;
+  }, { x: 0, y: 0 });
+}
+
+function pointsAttr(points) {
+  return points.map((point) => `${point.x},${point.y}`).join(" ");
+}
+
+async function copyLink(url, message) {
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus(message);
+  } catch {
+    setStatus(url);
   }
 }
 
-function seededOrder(seed, items) {
-  const rng = mulberry32(hashString(seed));
-  return items.map(item => item.id)
-    .map(id => ({ id, sort: rng() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(item => item.id);
+function setStatus(message) {
+  if (els.quizStatus) els.quizStatus.textContent = message;
 }
 
-function hashString(value) {
+function randomSeed() {
+  return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
+
+function normalizeSeed(seed) {
+  return String(seed || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || randomSeed();
+}
+
+function hashSeed(seed) {
   let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
 }
 
 function mulberry32(seed) {
-  return function random() {
-    let t = seed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  return function rng() {
+    let value = seed += 0x6D2B79F5;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-function makeSeed() {
-  const bytes = new Uint32Array(1);
-  crypto.getRandomValues(bytes);
-  return bytes[0].toString(36);
-}
-
-function encodeAnswers(answers, items) {
-  return items
-    .slice()
-    .sort((a, b) => a.id - b.id)
-    .map(question => {
-      const value = answers[question.id];
-      return Number.isFinite(value) ? String(value + 2) : "2";
-    })
-    .join("");
-}
-
-function decodeAnswers(encoded, items) {
-  const answers = {};
-  items.slice().sort((a, b) => a.id - b.id).forEach((question, index) => {
-    const digit = Number(encoded[index]);
-    if (digit >= 0 && digit <= 4) answers[question.id] = digit - 2;
-  });
-  return answers;
-}
-
-function groupBy(items, getter) {
-  const map = new Map();
-  items.forEach(item => {
-    const key = getter(item);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(item);
-  });
-  return [...map.values()];
-}
-
-function cosine(a, b) {
-  const numerator = dot(a, b);
-  const denom = Math.sqrt(dot(a, a)) * Math.sqrt(dot(b, b));
-  return denom ? numerator / denom : 0;
-}
-
-function dot(a, b) {
-  return a.reduce((sum, value, index) => sum + value * b[index], 0);
-}
-
 function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(value, min), max);
 }
 
 function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
