@@ -134,6 +134,7 @@ const els = {
   pointList: $("#pointList"),
   viewTabs: $$("[data-view]"),
   questionCounter: $("#questionCounter"),
+  answeredCounter: $("#answeredCounter"),
   seedBadge: $("#seedBadge"),
   progressFill: $("#progressFill"),
   questionCategory: $("#questionCategory"),
@@ -154,6 +155,7 @@ init();
 
 async function init() {
   initTheme();
+  initHeroPrismMap();
   initTriangle();
   initResumeLinks();
 
@@ -166,6 +168,68 @@ async function init() {
     await loadQuestions();
     initResultsPage();
   }
+}
+
+function initHeroPrismMap() {
+  const canvas = document.querySelector("[data-prism-map]");
+  if (!canvas?.getContext) return;
+
+  const width = Number(canvas.getAttribute("width")) || 410;
+  const height = Number(canvas.getAttribute("height")) || 486;
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+
+  const ctx = canvas.getContext("2d");
+  const image = ctx.createImageData(canvas.width, canvas.height);
+  const vertices = {
+    equality: { x: 0, y: height * 0.54878 },
+    freedom: { x: width, y: 0 },
+    stability: { x: width, y: height }
+  };
+  const colors = {
+    equality: [255, 45, 34],
+    freedom: [48, 124, 255],
+    stability: [40, 214, 92]
+  };
+  const denominator =
+    (vertices.freedom.y - vertices.stability.y) * (vertices.equality.x - vertices.stability.x) +
+    (vertices.stability.x - vertices.freedom.x) * (vertices.equality.y - vertices.stability.y);
+
+  for (let pixelY = 0; pixelY < canvas.height; pixelY += 1) {
+    for (let pixelX = 0; pixelX < canvas.width; pixelX += 1) {
+      const x = (pixelX + 0.5) / scale;
+      const y = (pixelY + 0.5) / scale;
+      const equality =
+        ((vertices.freedom.y - vertices.stability.y) * (x - vertices.stability.x) +
+          (vertices.stability.x - vertices.freedom.x) * (y - vertices.stability.y)) / denominator;
+      const freedom =
+        ((vertices.stability.y - vertices.equality.y) * (x - vertices.stability.x) +
+          (vertices.equality.x - vertices.stability.x) * (y - vertices.stability.y)) / denominator;
+      const stability = 1 - equality - freedom;
+      const index = (pixelY * canvas.width + pixelX) * 4;
+
+      if (equality < -0.002 || freedom < -0.002 || stability < -0.002) {
+        image.data[index + 3] = 0;
+        continue;
+      }
+
+      let red = equality * colors.equality[0] + freedom * colors.freedom[0] + stability * colors.stability[0];
+      let green = equality * colors.equality[1] + freedom * colors.freedom[1] + stability * colors.stability[1];
+      let blue = equality * colors.equality[2] + freedom * colors.freedom[2] + stability * colors.stability[2];
+      const average = (red + green + blue) / 3;
+      red = average + (red - average) * 1.28;
+      green = average + (green - average) * 1.28;
+      blue = average + (blue - average) * 1.28;
+
+      image.data[index] = Math.max(0, Math.min(255, Math.round(red)));
+      image.data[index + 1] = Math.max(0, Math.min(255, Math.round(green)));
+      image.data[index + 2] = Math.max(0, Math.min(255, Math.round(blue)));
+      image.data[index + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
 }
 
 function initResumeLinks() {
@@ -283,7 +347,8 @@ function renderQuiz() {
 
   const answered = answeredCount();
   const progress = (answered / state.questions.length) * 100;
-  if (els.questionCounter) els.questionCounter.textContent = `Question ${state.index + 1} of ${state.order.length} - ${answered} answered`;
+  if (els.questionCounter) els.questionCounter.textContent = `Question ${state.index + 1}`;
+  if (els.answeredCounter) els.answeredCounter.textContent = `${answered}/${state.questions.length}`;
   if (els.seedBadge) els.seedBadge.textContent = `Seed ${state.seed}`;
   if (els.progressFill) els.progressFill.style.width = `${progress}%`;
   if (els.questionCategory) els.questionCategory.textContent = `${question.meta_category} / ${question.primary_subtype}`;
@@ -294,7 +359,7 @@ function renderQuiz() {
     els.nextQuestion.disabled = !currentAnswered;
     els.nextQuestion.querySelector("span:first-child").textContent = state.index >= state.order.length - 1 ? "Results" : "Next";
   }
-  setStatus(answered ? `${answered} answer${answered === 1 ? "" : "s"} recorded.` : "No answers recorded yet.");
+  setStatus("");
 
   const selected = state.answers[String(question.id)];
   els.answerScale?.querySelectorAll("button").forEach((button) => {

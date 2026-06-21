@@ -204,12 +204,12 @@ a {
 }
 
 .opening {
-  min-height: auto;
+  min-height: calc(100svh - 86px);
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  grid-template-columns: minmax(340px, 0.82fr) minmax(520px, 1.18fr);
   align-items: center;
   gap: clamp(34px, 5vw, 76px);
-  padding: 76px 0 82px;
+  padding: clamp(48px, 7vh, 84px) 0 clamp(80px, 9vh, 118px);
 }
 
 .kicker,
@@ -333,93 +333,98 @@ h1 {
 }
 
 .hero-prism {
-  min-height: 420px;
+  min-height: min(620px, calc(100svh - 180px));
   display: grid;
   place-items: center;
+  position: relative;
+  isolation: isolate;
   perspective: 1200px;
 }
 
-.hero-prism svg {
-  width: min(100%, 680px);
+.prism-flow {
+  width: min(100%, 820px);
   height: auto;
   overflow: visible;
 }
 
-.hero-prism-tilt {
-  transform-origin: center;
-  animation: prismFloat 7s ease-in-out infinite;
+.hero-float {
+  animation: heroFloat 3.8s linear infinite alternate;
 }
 
-.hero-prism-face {
-  fill: url(#heroPrism);
-  fill-opacity: 0.78;
-  stroke: var(--ink);
-  stroke-width: 2;
+.floating-icon {
+  color: var(--ink);
 }
 
-.hero-prism-line {
-  stroke: color-mix(in srgb, var(--ink) 42%, transparent);
-  stroke-width: 1.2;
+.floating-icon.equality {
+  color: var(--equality);
 }
 
-.hero-prism-trace {
+.floating-icon.freedom {
+  color: var(--freedom);
+}
+
+.floating-icon.stability {
+  color: var(--stability);
+}
+
+.icon-halo {
+  fill: color-mix(in srgb, currentColor 11%, transparent);
+  stroke: color-mix(in srgb, currentColor 18%, transparent);
+  stroke-width: 1;
+}
+
+.icon-shell {
+  fill: color-mix(in srgb, var(--paper-strong) 76%, currentColor 24%);
+  stroke: color-mix(in srgb, currentColor 76%, var(--line));
+  stroke-width: 1.4;
+  filter: url(#heroSoftGlow);
+}
+
+.node-icon {
   fill: none;
-  stroke-width: 2;
-  stroke-dasharray: 12 14;
-  animation: prismDash 8s linear infinite;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.trace-one {
-  stroke: var(--freedom);
+.prism-aura {
+  fill: url(#heroPrismGlow);
+  filter: url(#heroSoftGlow);
+  opacity: 0.24;
 }
 
-.trace-two {
-  stroke: var(--stability);
-  animation-delay: -2s;
+.prism-object {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.trace-three {
-  stroke: var(--equality);
-  animation-delay: -4s;
+.prism-map-object {
+  overflow: visible;
 }
 
-.hero-pole {
-  stroke: var(--inverse);
-  stroke-width: 3;
+.prism-map-canvas {
+  display: block;
+  width: 410px;
+  height: 486px;
+  clip-path: polygon(0 54.878%, 100% 0, 100% 100%);
 }
 
-.hero-pole.freedom {
-  fill: var(--freedom);
+.prism-face {
+  fill: transparent;
+  stroke: none;
 }
 
-.hero-pole.equality {
-  fill: var(--equality);
+.prism-axis {
+  display: none;
 }
 
-.hero-pole.stability {
-  fill: var(--stability);
-}
-
-.hero-axis-label {
-  fill: var(--ink);
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 26px;
-  font-weight: 750;
-}
-
-@keyframes prismFloat {
-  0%,
-  100% {
-    transform: rotateX(0deg) rotateY(0deg) translateY(0);
+@keyframes heroFloat {
+  from {
+    transform: translateY(0);
   }
-  50% {
-    transform: rotateX(4deg) rotateY(-5deg) translateY(-10px);
-  }
-}
-
-@keyframes prismDash {
   to {
-    stroke-dashoffset: -104;
+    transform: translateY(-14px);
   }
 }
 
@@ -784,7 +789,6 @@ h1 {
 
 .notes-grid {
   display: grid;
-  border-top: 1px solid var(--line-strong);
 }
 
 .note-row {
@@ -793,7 +797,10 @@ h1 {
   gap: 14px;
   align-items: start;
   padding: 18px 0;
-  border-bottom: 1px solid var(--line-strong);
+}
+
+.note-row + .note-row {
+  border-top: 1px solid var(--line-strong);
 }
 
 .note-icon {
@@ -861,11 +868,27 @@ body[data-page="home"] .final-cta {
 }
 
 .quiz-meta {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: 14px;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+#questionCounter {
+  grid-column: 1;
+  justify-self: start;
+}
+
+#answeredCounter {
+  grid-column: 2;
+  justify-self: center;
+}
+
+#seedBadge {
+  grid-column: 3;
+  justify-self: end;
 }
 
 .progress-track {
@@ -942,6 +965,10 @@ body[data-page="quiz"] #nextQuestion:disabled {
   margin: 16px 0 0;
   color: var(--muted);
   font-size: 0.94rem;
+}
+
+.quiz-status:empty {
+  display: none;
 }
 
 .results-layout {

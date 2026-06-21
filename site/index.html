@@ -67,32 +67,68 @@
             </div>
           </div>
 
-          <div class="hero-prism" aria-label="Animated Political Prism triangle">
-            <svg viewBox="0 0 720 560" role="img" aria-label="Tilted prism with Freedom, Equality, and Stability poles">
+          <div class="hero-prism" aria-label="Animated Political Prism">
+            <svg class="prism-flow" viewBox="0 0 760 560" role="img" aria-labelledby="heroPrismTitle heroPrismDesc">
+              <title id="heroPrismTitle">Three-dimensional Political Prism triangle</title>
+              <desc id="heroPrismDesc">A skewed triangular prism blends red Equality, blue Freedom, and green Stability, with civic symbols scattered around it.</desc>
               <defs>
-                <linearGradient id="heroPrism" x1="10%" y1="50%" x2="90%" y2="50%">
-                  <stop offset="0%" stop-color="#e04432"/>
-                  <stop offset="48%" stop-color="#307cff"/>
-                  <stop offset="100%" stop-color="#38a657"/>
-                </linearGradient>
-                <filter id="heroShadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="24" stdDeviation="18" flood-color="#171512" flood-opacity="0.22"/>
+                <radialGradient id="heroPrismGlow" cx="55%" cy="50%" r="58%">
+                  <stop offset="0%" stop-color="#00f6ff" stop-opacity="0.11"/>
+                  <stop offset="42%" stop-color="#277dff" stop-opacity="0.08"/>
+                  <stop offset="74%" stop-color="#ff2d22" stop-opacity="0.06"/>
+                  <stop offset="100%" stop-color="#27ff62" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="heroSoftGlow" x="-45%" y="-45%" width="190%" height="190%">
+                  <feGaussianBlur stdDeviation="10" result="blur"/>
+                  <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.94 0 0 0  0 0 1 0 0  0 0 0 0.76 0" result="glow"/>
+                  <feMerge>
+                    <feMergeNode in="glow"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="heroPrismShadow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="-16" dy="6" stdDeviation="12" flood-color="#ff2d22" flood-opacity="0.1"/>
+                  <feDropShadow dx="14" dy="-8" stdDeviation="14" flood-color="#307cff" flood-opacity="0.12"/>
+                  <feDropShadow dx="14" dy="14" stdDeviation="14" flood-color="#28d65c" flood-opacity="0.1"/>
+                  <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#02060a" flood-opacity="0.28"/>
                 </filter>
               </defs>
-              <g class="hero-prism-tilt" filter="url(#heroShadow)">
-                <polygon class="hero-prism-face" points="82,286 610,84 610,492"/>
-                <line class="hero-prism-line" x1="82" y1="286" x2="610" y2="84"/>
-                <line class="hero-prism-line" x1="82" y1="286" x2="610" y2="492"/>
-                <line class="hero-prism-line" x1="610" y1="84" x2="610" y2="492"/>
-                <path class="hero-prism-trace trace-one" d="M138 286 C280 210 420 155 562 100"/>
-                <path class="hero-prism-trace trace-two" d="M150 294 C292 320 422 410 566 476"/>
-                <path class="hero-prism-trace trace-three" d="M608 118 C512 230 506 346 608 462"/>
-                <circle class="hero-pole equality" cx="82" cy="286" r="10"/>
-                <circle class="hero-pole freedom" cx="610" cy="84" r="10"/>
-                <circle class="hero-pole stability" cx="610" cy="492" r="10"/>
-                <text x="44" y="266" class="hero-axis-label equality">Equality</text>
-                <text x="552" y="58" class="hero-axis-label freedom">Freedom</text>
-                <text x="548" y="532" class="hero-axis-label stability">Stability</text>
+
+              <g class="hero-float">
+                <g class="floating-icons" aria-hidden="true">
+                  <g class="floating-icon equality" transform="translate(158 166) rotate(-7)">
+                    <circle class="icon-halo" r="38"/>
+                    <circle class="icon-shell" r="25"/>
+                    <path class="node-icon" d="M0-14v28M-16-8h32M-20-8l-9 18h18zm40 0-9 18h18z"/>
+                  </g>
+                  <g class="floating-icon freedom" transform="translate(698 92)">
+                    <circle class="icon-halo" r="38"/>
+                    <circle class="icon-shell" r="25"/>
+                    <g class="node-icon torch-node">
+                      <path d="M-10 8C-15.5 2-12.6-8.4-4-18c-.2 4.8 1.6 8.2 5.4 11.4C2.4-12.8 6.4-17.2 12-21c3.3 10.4 3.6 21-2 29z"/>
+                      <path d="M-10 8h20l-3 6H-7z"/>
+                      <path d="M-4 14h8L3 22h-6z"/>
+                    </g>
+                  </g>
+                  <g class="floating-icon stability" transform="translate(500 562) rotate(5)">
+                    <circle class="icon-halo" r="38"/>
+                    <circle class="icon-shell" r="25"/>
+                    <path class="node-icon" d="M-18 16h36M-14 9h28M-10-10v19M0-10v19M10-10v19M-17-10h34L0-21z"/>
+                  </g>
+                </g>
+
+                <g class="prism-stage" aria-hidden="true">
+                  <polygon class="prism-aura" points="178,303 632,8 632,548"/>
+                  <g class="prism-object" filter="url(#heroPrismShadow)">
+                    <foreignObject class="prism-map-object" x="200" y="36" width="410" height="486">
+                      <canvas xmlns="http://www.w3.org/1999/xhtml" class="prism-map-canvas" width="410" height="486" data-prism-map></canvas>
+                    </foreignObject>
+                    <polygon class="prism-face" points="200,303 610,36 610,522"/>
+                    <path class="prism-axis equality" d="M200 303 610 36"/>
+                    <path class="prism-axis freedom" d="M610 36 610 522"/>
+                    <path class="prism-axis stability" d="M610 522 200 303"/>
+                  </g>
+                </g>
               </g>
             </svg>
           </div>
@@ -116,7 +152,11 @@
             </article>
             <article class="axis-line freedom">
               <span class="axis-number">
-                <svg class="axis-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5M5 5v14"/></svg>
+                <svg class="axis-symbol" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 17.3C2.7 13.7 4.4 7.6 9.6 2.7c-.1 2.9 1 4.9 3.2 6.8.6-3.7 3-6.4 6.4-8.7 2 6.2 2.2 12.5-1.2 16.5z"/>
+                  <path d="M6 17.3h12L15.8 20H8.2z"/>
+                  <path d="M10 20h4l-.8 2.5h-2.4z"/>
+                </svg>
                 <span>02</span>
               </span>
               <div>
@@ -126,7 +166,7 @@
             </article>
             <article class="axis-line stability">
               <span class="axis-number">
-                <svg class="axis-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/></svg>
+                <svg class="axis-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M6 17h12M8 8v9M12 8v9M16 8v9M5 8h14L12 3z"/></svg>
                 <span>03</span>
               </span>
               <div>
