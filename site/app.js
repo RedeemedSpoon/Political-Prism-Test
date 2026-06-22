@@ -37,6 +37,8 @@ const ANSWER_VALUES = [
   { value: 1, label: "Support" },
   { value: 2, label: "Strongly support" }
 ];
+const QUIZ_PROGRESS_COOKIE_PREFIX = "prism-quiz-";
+const QUIZ_PROGRESS_MAX_AGE = 60 * 60 * 24 * 180;
 
 const LAYERS = {
   virtues: {
@@ -148,7 +150,8 @@ const els = {
   resultReading: $("#resultReading"),
   copyResultLink: $("#copyResultLink"),
   resumeQuiz: $("#resumeQuiz"),
-  resumeHomeLink: $("#resumeHomeLink")
+  resumeHomeLink: $("#resumeHomeLink"),
+  selectionConnector: $("#selectionConnector")
 };
 
 init();
@@ -277,6 +280,10 @@ function initTriangle() {
   els.viewTabs.forEach((button) => {
     button.addEventListener("click", () => renderLayer(button.dataset.view));
   });
+  window.addEventListener("resize", () => {
+    const point = currentLayerPoint();
+    if (point) renderSelectionConnector(point);
+  });
   renderLayer("units");
 }
 
@@ -285,8 +292,9 @@ function initQuizPage() {
   const parsed = parseQuizUrl();
   state.seed = parsed.seed || randomSeed();
   state.order = shuffledQuestionIds(state.seed);
-  state.index = clamp(parsed.index, 0, state.order.length - 1);
-  state.answers = parsed.answers;
+  const saved = parsed.hasUrlProgress ? parsed : readQuizProgress(state.seed);
+  state.index = clamp(saved.index, 0, state.order.length - 1);
+  state.answers = sanitizeAnswers(saved.answers);
 
   renderAnswerButtons();
   bindQuizEvents();
@@ -305,7 +313,7 @@ function initResultsPage() {
   state.seed = parsed.seed;
   state.order = shuffledQuestionIds(state.seed);
   state.index = 0;
-  state.answers = parsed.answers;
+  state.answers = sanitizeAnswers(parsed.answers);
   state.lastResult = calculateResult();
 
   if (answeredCount() === 0) {
@@ -313,10 +321,12 @@ function initResultsPage() {
     return;
   }
 
+  state.index = clamp(readQuizProgress(state.seed).index, 0, state.order.length - 1);
+  persistQuizProgress();
   replaceResultsUrl();
   renderResults(state.lastResult);
   renderLayer("virtues");
-  if (els.resumeQuiz) els.resumeQuiz.href = quizHref(0);
+  if (els.resumeQuiz) els.resumeQuiz.href = quizHref();
 }
 
 function bindQuizEvents() {
@@ -335,7 +345,7 @@ function renderAnswerButtons() {
       const id = currentQuestionId();
       if (!id) return;
       state.answers[id] = Number(button.dataset.answer);
-      replaceQuizUrl();
+      persistQuizProgress();
       renderQuiz();
     });
   });
@@ -374,7 +384,7 @@ function moveQuestion(delta) {
     return;
   }
   state.index = clamp(state.index + delta, 0, state.order.length - 1);
-  replaceQuizUrl();
+  persistQuizProgress();
   renderQuiz();
 }
 
@@ -433,16 +443,23 @@ function renderResults(result) {
     `;
   }
 
-  els.copyResultLink?.addEventListener("click", () => copyLink(new URL(resultsHref(), window.location.href).href, "Result link copied."));
+  els.copyResultLink?.addEventListener("click", () => copyResultLink(new URL(resultsHref(), window.location.href).href));
 }
 
 function renderLayer(view, selectedId) {
   if (!els.triangleCanvas) return;
   const layer = LAYERS[view] || LAYERS.virtues;
+  const previousView = state.activeView;
+  const previousPointId = state.selectedPointId;
+  const hasSelection = typeof selectedId === "string";
   state.activeView = view;
-  state.selectedPointId = selectedId || state.selectedPointId || layer.points[0].id;
-  if (!layer.points.some((point) => point.id === state.selectedPointId)) {
-    state.selectedPointId = layer.points[0].id;
+
+  if (hasSelection && previousView === view && previousPointId === selectedId) {
+    state.selectedPointId = null;
+  } else if (hasSelection && layer.points.some((point) => point.id === selectedId)) {
+    state.selectedPointId = selectedId;
+  } else {
+    state.selectedPointId = null;
   }
 
   els.viewTabs.forEach((button) => {
@@ -460,30 +477,74 @@ function renderLayer(view, selectedId) {
 function renderTriangle(layer) {
   const width = 620;
   const height = 620;
-  const vertices = DISPLAY_ORDER.map((axis) => AXES[axis].vertex);
+  const verticesByAxis = DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = AXES[axis].vertex;
+    return collection;
+  }, {});
+  const vertices = DISPLAY_ORDER.map((axis) => verticesByAxis[axis]);
   const resultPoint = state.lastResult ? pointFromWeights(state.lastResult.weights) : null;
   const nodes = layer.points.map((point) => renderSvgNode(point)).join("");
   const resultMarkup = resultPoint ? `
     <g class="tri-result" transform="translate(${resultPoint.x} ${resultPoint.y})">
       <circle class="tri-result-ring" r="18"></circle>
-      <circle r="8" fill="var(--ink)"></circle>
-      <rect x="16" y="-20" width="82" height="26" rx="6" fill="var(--paper-strong)" stroke="var(--ink)"></rect>
-      <text x="26" y="-3" class="tri-node-label">Your result</text>
+      ${renderDot("var(--ink)")}
+      <text x="22" y="-10" class="tri-node-label">Your result</text>
     </g>
   ` : "";
 
   els.triangleCanvas.innerHTML = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${layer.title}">
       <defs>
-        <linearGradient id="prismWash" x1="0%" y1="50%" x2="100%" y2="50%">
-          <stop offset="0%" stop-color="${AXES.equality.color}" stop-opacity="0.2"></stop>
-          <stop offset="48%" stop-color="${AXES.freedom.color}" stop-opacity="0.18"></stop>
-          <stop offset="100%" stop-color="${AXES.stability.color}" stop-opacity="0.2"></stop>
+        <radialGradient id="washEquality" cx="${verticesByAxis.equality.x}" cy="${verticesByAxis.equality.y}" r="520" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.equality.color}" stop-opacity="0.92"></stop>
+          <stop offset="48%" stop-color="${AXES.equality.color}" stop-opacity="0.26"></stop>
+          <stop offset="100%" stop-color="${AXES.equality.color}" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="washFreedom" cx="${verticesByAxis.freedom.x}" cy="${verticesByAxis.freedom.y}" r="520" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.freedom.color}" stop-opacity="0.88"></stop>
+          <stop offset="48%" stop-color="${AXES.freedom.color}" stop-opacity="0.26"></stop>
+          <stop offset="100%" stop-color="${AXES.freedom.color}" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="washStability" cx="${verticesByAxis.stability.x}" cy="${verticesByAxis.stability.y}" r="520" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.stability.color}" stop-opacity="0.9"></stop>
+          <stop offset="48%" stop-color="${AXES.stability.color}" stop-opacity="0.28"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}" stop-opacity="0"></stop>
+        </radialGradient>
+        <linearGradient id="edgeEqualityFreedom" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.equality.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.freedom.color}"></stop>
         </linearGradient>
+        <linearGradient id="edgeFreedomStability" x1="${verticesByAxis.freedom.x}" y1="${verticesByAxis.freedom.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.freedom.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}"></stop>
+        </linearGradient>
+        <linearGradient id="edgeEqualityStability" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.equality.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}"></stop>
+        </linearGradient>
+        <filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+        <filter id="nodeGlow" x="-160%" y="-160%" width="420%" height="420%">
+          <feGaussianBlur stdDeviation="7" result="blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
       </defs>
       <rect width="${width}" height="${height}" fill="transparent"></rect>
-      <polygon points="${pointsAttr(vertices)}" fill="url(#prismWash)"></polygon>
+      <polygon class="tri-wash tri-wash-equality" points="${pointsAttr(vertices)}" fill="url(#washEquality)"></polygon>
+      <polygon class="tri-wash tri-wash-freedom" points="${pointsAttr(vertices)}" fill="url(#washFreedom)"></polygon>
+      <polygon class="tri-wash tri-wash-stability" points="${pointsAttr(vertices)}" fill="url(#washStability)"></polygon>
       ${buildGridLines()}
+      <line class="tri-edge" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" stroke="url(#edgeEqualityFreedom)"></line>
+      <line class="tri-edge" x1="${verticesByAxis.freedom.x}" y1="${verticesByAxis.freedom.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" stroke="url(#edgeFreedomStability)"></line>
+      <line class="tri-edge" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" stroke="url(#edgeEqualityStability)"></line>
       <polygon class="tri-boundary" points="${pointsAttr(vertices)}"></polygon>
       ${renderAxisLabels()}
       ${nodes}
@@ -494,8 +555,6 @@ function renderTriangle(layer) {
   els.triangleCanvas.querySelectorAll(".tri-node").forEach((node) => {
     const id = node.dataset.point;
     node.addEventListener("click", () => renderLayer(state.activeView, id));
-    node.addEventListener("mouseenter", () => renderSelectedPoint(layer.points.find((point) => point.id === id)));
-    node.addEventListener("focus", () => renderSelectedPoint(layer.points.find((point) => point.id === id)));
     node.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -509,19 +568,42 @@ function renderSvgNode(point) {
   const position = pointFromWeights(point.weights);
   const selected = point.id === state.selectedPointId ? " is-selected" : "";
   const color = AXES[point.tone]?.color || "var(--ink)";
-  const labelWidth = Math.max(56, point.label.length * 7 + 18);
-  const labelHeight = 24;
-  const dx = point.dx ?? 12;
-  const dy = point.dy ?? -12;
 
   return `
     <g class="tri-node${selected}" data-point="${point.id}" tabindex="0" role="button" aria-label="${escapeHtml(point.label)}" transform="translate(${position.x} ${position.y})">
-      <line x1="0" y1="0" x2="${dx}" y2="${dy}" stroke="${color}" stroke-opacity="0.46" stroke-width="1"></line>
-      <circle class="tri-node-dot" r="6.5" fill="${color}"></circle>
-      <rect class="tri-node-label-bg" x="${dx}" y="${dy - labelHeight + 5}" width="${labelWidth}" height="${labelHeight}" rx="6"></rect>
-      <text class="tri-node-label" x="${dx + 9}" y="${dy - 5}">${escapeHtml(point.label)}</text>
+      ${renderDot(color)}
+      ${renderSvgLabel(point.label)}
     </g>
   `;
+}
+
+function renderDot(color) {
+  return `
+    <circle class="tri-dot-aura" r="24" fill="${color}"></circle>
+    <circle class="tri-dot-glow" r="15" fill="${color}"></circle>
+    <circle class="tri-dot-core" r="7.5" fill="${color}"></circle>
+  `;
+}
+
+function renderSvgLabel(label) {
+  const lines = splitLabel(label);
+  const x = 0;
+  const y = 24;
+  return `
+    <text class="tri-node-label" x="${x}" y="${y}" text-anchor="middle">
+      ${lines.map((line, index) => `<tspan x="${x}" dy="${index ? 17 : 0}">${escapeHtml(line)}</tspan>`).join("")}
+    </text>
+  `;
+}
+
+function splitLabel(label) {
+  if (label.length <= 15 || !label.includes(" ")) return [label];
+  const words = label.split(" ");
+  const midpoint = Math.ceil(words.length / 2);
+  return [
+    words.slice(0, midpoint).join(" "),
+    words.slice(midpoint).join(" ")
+  ].filter(Boolean);
 }
 
 function renderAxisLabels() {
@@ -541,8 +623,10 @@ function renderAxisLabels() {
 
     return `
       <g>
-        <circle cx="${v.x}" cy="${v.y}" r="10" fill="${data.color}" stroke="var(--inverse)" stroke-width="3"></circle>
-        <text class="tri-axis-label" x="${v.x + offsets.x}" y="${v.y + offsets.y}" text-anchor="${offsets.anchor}">${data.label}</text>
+        <g class="tri-axis-node" transform="translate(${v.x} ${v.y})">
+          ${renderDot(data.color)}
+        </g>
+        <text class="tri-axis-label tri-axis-${axis}" x="${v.x + offsets.x}" y="${v.y + offsets.y}" text-anchor="${offsets.anchor}">${data.label}</text>
         <text class="tri-axis-note" x="${v.x + noteOffsets.x}" y="${v.y + noteOffsets.y}" text-anchor="${noteOffsets.anchor}">${data.note}</text>
       </g>
     `;
@@ -562,7 +646,16 @@ function renderPointList(layer) {
 }
 
 function renderSelectedPoint(point) {
-  if (!point || !els.selectedPoint) return;
+  if (!els.selectedPoint) return;
+  const panel = els.selectedPoint.closest(".layer-panel");
+  if (!point) {
+    if (panel) panel.hidden = true;
+    hideSelectionConnector();
+    els.selectedPoint.innerHTML = "";
+    return;
+  }
+
+  if (panel) panel.hidden = false;
   const weights = DISPLAY_ORDER
     .map((axis) => `${AXES[axis].short} ${Math.round((point.weights[axis] || 0) * 100)}%`)
     .join(" / ");
@@ -572,6 +665,91 @@ function renderSelectedPoint(point) {
     <p>${escapeHtml(point.text)}</p>
     <p class="mix-line">${weights}</p>
   `;
+  renderSelectionConnector(point);
+  window.requestAnimationFrame(() => renderSelectionConnector(point));
+}
+
+function currentLayerPoint() {
+  const layer = LAYERS[state.activeView] || LAYERS.virtues;
+  return layer.points.find((point) => point.id === state.selectedPointId);
+}
+
+function hideSelectionConnector() {
+  if (!els.selectionConnector) return;
+  els.selectionConnector.hidden = true;
+  els.selectionConnector.innerHTML = "";
+}
+
+function renderSelectionConnector(point) {
+  if (!els.selectionConnector || !els.triangleCanvas || !els.selectedPoint) return;
+  const panel = els.selectedPoint.closest(".layer-panel");
+  const stage = els.selectionConnector.closest(".triangle-stage");
+  const svg = els.triangleCanvas.querySelector("svg");
+  if (!panel || !stage || !svg || panel.hidden) {
+    hideSelectionConnector();
+    return;
+  }
+
+  const stageRect = stage.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const svgRect = svg.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height || !svgRect.width || !svgRect.height) {
+    hideSelectionConnector();
+    return;
+  }
+
+  const position = pointFromWeights(point.weights);
+  const pointX = svgRect.left - stageRect.left + (position.x / 620) * svgRect.width;
+  const pointY = svgRect.top - stageRect.top + (position.y / 620) * svgRect.height;
+  const box = {
+    left: panelRect.left - stageRect.left,
+    right: panelRect.right - stageRect.left,
+    top: panelRect.top - stageRect.top,
+    bottom: panelRect.bottom - stageRect.top
+  };
+  const start = pointOnBoxEdge(box, pointX, pointY);
+  const end = shortenLine(start.x, start.y, pointX, pointY, 16);
+
+  els.selectionConnector.hidden = false;
+  els.selectionConnector.setAttribute("viewBox", `0 0 ${stageRect.width} ${stageRect.height}`);
+  els.selectionConnector.innerHTML = `
+    <defs>
+      <marker id="selectionConnectorArrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto">
+        <path d="M0 0 9 4.5 0 9 2.5 4.5Z" class="selection-connector-arrow"></path>
+      </marker>
+    </defs>
+    <path class="selection-connector-line" d="M${start.x.toFixed(1)} ${start.y.toFixed(1)} L${end.x.toFixed(1)} ${end.y.toFixed(1)}" marker-end="url(#selectionConnectorArrow)"></path>
+  `;
+}
+
+function pointOnBoxEdge(box, pointX, pointY) {
+  const centerX = (box.left + box.right) / 2;
+  const centerY = (box.top + box.bottom) / 2;
+  const dx = pointX - centerX;
+  const dy = pointY - centerY;
+  if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
+    return { x: box.right, y: centerY };
+  }
+
+  const scaleX = dx === 0 ? Infinity : Math.abs((dx > 0 ? box.right - centerX : centerX - box.left) / dx);
+  const scaleY = dy === 0 ? Infinity : Math.abs((dy > 0 ? box.bottom - centerY : centerY - box.top) / dy);
+  const scale = Math.min(scaleX, scaleY);
+  return {
+    x: centerX + dx * scale,
+    y: centerY + dy * scale
+  };
+}
+
+function shortenLine(startX, startY, endX, endY, amount) {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const length = Math.hypot(dx, dy);
+  if (length <= amount || length < 0.0001) return { x: endX, y: endY };
+  const ratio = (length - amount) / length;
+  return {
+    x: startX + dx * ratio,
+    y: startY + dy * ratio
+  };
 }
 
 function buildGridLines() {
@@ -638,10 +816,12 @@ function parseQuizUrl() {
   const params = new URLSearchParams(window.location.search);
   const legacySeed = params.get("seed");
   if (legacySeed) {
+    const hasUrlProgress = params.has("i") || params.has("a");
     return {
       seed: normalizeSeed(legacySeed),
       index: Number(params.get("i") || 0),
-      answers: decodeAnswers(params.get("a") || "")
+      answers: decodeAnswers(params.get("a") || ""),
+      hasUrlProgress
     };
   }
 
@@ -650,7 +830,8 @@ function parseQuizUrl() {
   return {
     seed: seed ? normalizeSeed(seed) : "",
     index: Number(index || 0),
-    answers: decodeAnswers(answers)
+    answers: decodeAnswers(answers),
+    hasUrlProgress: Boolean(raw)
   };
 }
 
@@ -673,24 +854,58 @@ function parseResultsUrl() {
 }
 
 function replaceQuizUrl() {
-  const href = quizHref(state.index);
+  persistQuizProgress();
+  const href = quizHref();
   localStorage.setItem("prism-resume-url", href);
-  window.history.replaceState(null, "", href);
+  if (window.location.pathname.split("/").pop() + window.location.search !== href) {
+    window.history.replaceState(null, "", href);
+  }
 }
 
 function replaceResultsUrl() {
   window.history.replaceState(null, "", resultsHref());
 }
 
-function quizHref(index) {
-  const encoded = encodeAnswers(state.answers);
-  const parts = [state.seed, String(clamp(index, 0, Math.max(0, state.order.length - 1)))];
-  if (encoded) parts.push(encoded);
-  return `quiz.html?q=${encodeURIComponent(parts.join("."))}`;
+function quizHref() {
+  return `quiz.html?seed=${encodeURIComponent(state.seed)}`;
 }
 
 function resultsHref() {
   return `results.html?r=${encodeURIComponent([state.seed, encodeAnswers(state.answers)].join("."))}`;
+}
+
+function persistQuizProgress() {
+  if (!state.seed) return;
+  const progress = `${clamp(state.index, 0, Math.max(0, state.order.length - 1))}.${encodeAnswers(state.answers)}`;
+  setCookie(quizProgressCookieName(state.seed), progress, QUIZ_PROGRESS_MAX_AGE);
+  localStorage.setItem("prism-resume-url", quizHref());
+}
+
+function readQuizProgress(seed) {
+  const raw = getCookie(quizProgressCookieName(seed));
+  if (!raw) return { index: 0, answers: {} };
+  const [index, answers = ""] = raw.split(".");
+  return {
+    index: Number(index || 0),
+    answers: decodeAnswers(answers)
+  };
+}
+
+function quizProgressCookieName(seed) {
+  return `${QUIZ_PROGRESS_COOKIE_PREFIX}${seed}`;
+}
+
+function setCookie(name, value, maxAge) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; SameSite=Lax`;
+}
+
+function getCookie(name) {
+  const prefix = `${name}=`;
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : "";
 }
 
 function encodeAnswers(answers) {
@@ -709,6 +924,13 @@ function decodeAnswers(encoded) {
     if (Number.isFinite(value)) answers[String(question.id)] = value;
   });
   return answers;
+}
+
+function sanitizeAnswers(answers = {}) {
+  return Object.entries(answers).reduce((clean, [id, value]) => {
+    if (state.byId.has(String(id)) && Number.isFinite(value)) clean[String(id)] = value;
+    return clean;
+  }, {});
 }
 
 function currentQuestionId() {
@@ -747,13 +969,26 @@ function pointsAttr(points) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
-async function copyLink(url, message) {
+async function copyResultLink(url) {
+  const button = els.copyResultLink;
+  const label = button?.querySelector("span");
+  if (!button || !label) return;
+
+  const original = button.dataset.originalLabel || label.textContent;
+  button.dataset.originalLabel = original;
+  button.disabled = true;
+
   try {
     await navigator.clipboard.writeText(url);
-    setStatus(message);
+    label.textContent = "Copied";
   } catch {
-    setStatus(url);
+    label.textContent = "Copy failed";
   }
+
+  window.setTimeout(() => {
+    label.textContent = original;
+    button.disabled = false;
+  }, 1600);
 }
 
 function setStatus(message) {

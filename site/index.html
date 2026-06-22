@@ -186,18 +186,20 @@
             </p>
           </div>
 
-          <div class="triangle-layout">
-            <div class="triangle-board">
+          <div class="triangle-stage">
+            <div class="triangle-controls">
               <div class="view-tabs" role="tablist" aria-label="Triangle view">
                 <button type="button" role="tab" aria-selected="false" data-view="virtues">Virtues</button>
                 <button type="button" role="tab" aria-selected="true" data-view="units">Units</button>
                 <button type="button" role="tab" aria-selected="false" data-view="ideologies">Ideologies</button>
                 <button type="button" role="tab" aria-selected="false" data-view="figures">Authority Figures</button>
               </div>
-              <div id="triangleCanvas" class="triangle-canvas" aria-live="polite"></div>
             </div>
 
-            <aside class="layer-panel" aria-label="Selected prism layer">
+            <div id="triangleCanvas" class="triangle-canvas prism-canvas" aria-live="polite"></div>
+            <svg class="selection-connector" id="selectionConnector" aria-hidden="true" hidden></svg>
+
+            <aside class="layer-panel" aria-label="Selected prism layer" hidden>
               <p class="panel-eyebrow" id="layerEyebrow">Virtues Layer</p>
               <h3 id="layerTitle">Freedom, Equality, Stability</h3>
               <p id="layerDescription"></p>
@@ -228,7 +230,7 @@
               <svg class="measure-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12a4 4 0 0 1 0 8H7"/><path d="m8 11-4 4 4 4"/></svg>
               <div>
                 <h3>Answers are reversible.</h3>
-                <p>The quiz page keeps progress in a compact URL, so you can leave, resume, and still stay local.</p>
+                <p>The quiz page keeps progress in your browser, so you can leave, resume, and share only the final result URL.</p>
               </div>
             </article>
             <article class="measure-row">
@@ -257,7 +259,7 @@
             </article>
             <article class="note-row">
               <svg class="note-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12h8M13 7l5 5-5 5"/><path d="M5 5v14"/></svg>
-              <p><strong>Shareable</strong><span>Quiz progress and results are encoded into compact URLs you can copy.</span></p>
+              <p><strong>Shareable</strong><span>Final results are encoded into compact URLs you can copy.</span></p>
             </article>
           </div>
         </section>

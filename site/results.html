@@ -55,8 +55,21 @@
             <p id="resultSummary">Loading result...</p>
           </div>
 
-          <div class="result-triangle">
-            <div id="triangleCanvas" class="triangle-canvas result-only" aria-live="polite"></div>
+          <div class="result-triangle triangle-stage result-prism">
+            <div id="triangleCanvas" class="triangle-canvas result-only prism-canvas" aria-live="polite"></div>
+            <svg class="selection-connector" id="selectionConnector" aria-hidden="true" hidden></svg>
+
+            <aside class="layer-panel" aria-label="Selected prism point" hidden>
+              <p class="panel-eyebrow" id="layerEyebrow">Virtues Layer</p>
+              <h3 id="layerTitle">Freedom, Equality, Stability</h3>
+              <p id="layerDescription"></p>
+              <div class="selected-point" id="selectedPoint">
+                <p class="selected-label">Selected point</p>
+                <h4>Choose a dot in the triangle.</h4>
+                <p>The notes here will explain how that point reads the same three-pole conflict.</p>
+              </div>
+              <div class="point-list" id="pointList" aria-label="Layer points"></div>
+            </aside>
           </div>
 
           <div class="results-layout">
@@ -72,7 +85,6 @@
             <a class="command secondary" id="resumeQuiz" href="quiz.html">Resume quiz</a>
             <a class="command secondary" href="quiz.html">New randomized quiz</a>
           </div>
-          <p class="quiz-status" id="quizStatus" role="status"></p>
         </section>
       </main>
     </div>
