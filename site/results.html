@@ -17,19 +17,14 @@
     <div class="page-shell">
       <header class="site-header" aria-label="Site header">
         <a class="brand" href="./" aria-label="The Political Prism home">
-          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-            <path class="mark-outline" d="M8 34 54 9 54 57Z"/>
-            <path class="mark-equality" d="M8 34 38.67 33.33 54 9Z"/>
-            <path class="mark-freedom" d="M54 9 38.67 33.33 54 57Z"/>
-            <path class="mark-stability" d="M54 57 38.67 33.33 8 34Z"/>
-          </svg>
+          <img class="brand-mark" src="favicon.svg" alt="" aria-hidden="true">
           <span>The Political Prism</span>
         </a>
         <div class="header-actions">
           <nav class="nav-links" aria-label="Primary navigation">
-            <a href="./">
-              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>
-              <span>Homepage</span>
+            <a href="editor.html">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="7"/></svg>
+              <span>Editor</span>
             </a>
             <a href="quiz.html">
               <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
@@ -50,12 +45,21 @@
       <main>
         <section class="results-section standalone-results" aria-labelledby="resultsTitle">
           <div class="section-heading compact">
-            <p class="kicker">Result</p>
-            <h1 id="resultsTitle">Your position inside the prism</h1>
+            <p class="kicker">Political Prism result</p>
+            <h1 id="resultsTitle">Your Political Prism report</h1>
             <p id="resultSummary">Loading result...</p>
           </div>
+          <div class="result-overview" id="resultOverview" aria-live="polite"></div>
 
           <div class="result-triangle triangle-stage result-prism">
+            <div class="triangle-controls result-layer-controls">
+              <div class="view-tabs" role="tablist" aria-label="Result prism view">
+                <button type="button" role="tab" aria-selected="true" data-view="virtues">Virtues</button>
+                <button type="button" role="tab" aria-selected="false" data-view="units">Units and coordination systems</button>
+                <button type="button" role="tab" aria-selected="false" data-view="ideologies">Ideologies</button>
+                <button type="button" role="tab" aria-selected="false" data-view="figures">Historical and modern figures</button>
+              </div>
+            </div>
             <div id="triangleCanvas" class="triangle-canvas result-only prism-canvas" aria-live="polite"></div>
             <svg class="selection-connector" id="selectionConnector" aria-hidden="true" hidden></svg>
 
@@ -72,10 +76,10 @@
             </aside>
           </div>
 
-          <div class="results-layout">
-            <div class="result-bars" id="resultBars"></div>
+          <section class="result-report" aria-label="Political Prism result interpretation">
             <div class="result-reading" id="resultReading"></div>
-          </div>
+            <aside class="result-bars" id="resultBars" aria-label="Answer evidence"></aside>
+          </section>
 
           <div class="result-actions">
             <button class="command primary icon-label" id="copyResultLink" type="button">

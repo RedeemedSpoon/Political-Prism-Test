@@ -39,6 +39,25 @@ const ANSWER_VALUES = [
 ];
 const QUIZ_PROGRESS_COOKIE_PREFIX = "prism-quiz-";
 const QUIZ_PROGRESS_MAX_AGE = 60 * 60 * 24 * 180;
+const EDITOR_STORAGE_KEY = "prism-editor-draft";
+const EDITOR_EXPORT_SIZE = { width: 1400, height: 1400 };
+const EDITOR_EXPORT_URL = "https://redeemedspoon.github.io/Political-Prism-Test";
+const TRIANGLE_WASH_COLORS = {
+  equality: [255, 45, 34],
+  freedom: [48, 124, 255],
+  stability: [40, 214, 92]
+};
+const EDITOR_DEFAULT_DRAFT = {
+  title: "Custom Political Prism",
+  subtitle: "Freedom, Equality, and Stability as a three-way coordinate.",
+  exportDark: false,
+  axes: {
+    freedom: { label: AXES.freedom.label, note: AXES.freedom.note },
+    equality: { label: AXES.equality.label, note: AXES.equality.note },
+    stability: { label: AXES.stability.label, note: AXES.stability.note }
+  },
+  points: []
+};
 
 const LAYERS = {
   virtues: {
@@ -55,9 +74,9 @@ const LAYERS = {
     ]
   },
   units: {
-    eyebrow: "Units Layer",
+    eyebrow: "Units and Coordination Systems",
     title: "Individual, Community, Collective Body",
-    description: "The anthropological layer. Each pole imagines society from a different unit of concern.",
+    description: "The anthropological layer. Each pole imagines society from a different unit of concern and a different coordination system.",
     points: [
       { id: "individual", label: "Individual", tone: "freedom", weights: { freedom: 0.9, equality: 0.05, stability: 0.05 }, dx: -70, dy: 20, text: "The person as chooser, owner, speaker, trader, dissenter, and bearer of rights." },
       { id: "community", label: "Community", tone: "equality", weights: { freedom: 0.05, equality: 0.9, stability: 0.05 }, dx: 18, dy: 20, text: "The person as member of a moral community, entitled to dignity, care, and protection from domination." },
@@ -85,7 +104,7 @@ const LAYERS = {
     ]
   },
   figures: {
-    eyebrow: "Authority Figures Layer",
+    eyebrow: "Historical and Modern Figures",
     title: "Approximate reference points",
     description: "These placements orient different traditions. They are not endorsements, rankings, or final judgments.",
     points: [
@@ -112,6 +131,70 @@ const RESULT_NAMES = {
   stability: { freedom: "Conservative Liberal", equality: "Communitarian Order" }
 };
 
+const RESULT_AXIS_DETAILS = {
+  freedom: {
+    question: "What can the individual do?",
+    subject: "the individual as chooser, owner, speaker, trader, dissenter, and bearer of rights",
+    socialLogic: "voluntary exchange: consent, contract, property, competition, markets, and rule of law",
+    fear: "being absorbed into a collective purpose that treats personal agency as expendable",
+    first: "Your first political reflex is to keep the person from becoming a tool of society. When a question forces a tradeoff, you usually begin by asking whether people retain exit, ownership, speech, association, refusal, and room for self-direction.",
+    second: "As a secondary virtue, Freedom still matters, but it functions more as a limit on how far care or order may go. You may accept social provision or hierarchy, but you resist arrangements that remove choice entirely.",
+    sacrificed: "When Freedom is your sacrificed pole, your answers show a willingness to limit exit, private choice, market freedom, or individual refusal when another civic good seems more urgent.",
+    compass: "You read politics from the individual outward: society is legitimate when people can act, dissent, trade, refuse, and leave.",
+    warning: "Freedom without balancing forces can fragment into oligarchy, predation, weak solidarity, and formal choice that leaves the weak exposed to the strong."
+  },
+  equality: {
+    question: "What is the individual's standing among others?",
+    subject: "the person as a member of a moral community, protected from domination and inherited dependence",
+    socialLogic: "family and care: sharing, mutual obligation, moral inclusion, redistribution, compassion, and protection",
+    fear: "domination by wealth, birth, class, race, tribe, market power, inheritance, or private hierarchy",
+    first: "Your first political reflex is to prevent society from dividing people into masters and dependents. When values collide, you usually ask who is being dominated, who begins with inherited advantage, and whether people meet each other as moral equals.",
+    second: "As a secondary virtue, Equality remains a strong corrective. You may allow markets, hierarchy, or inherited institutions, but you expect them to justify themselves before the claims of dignity and anti-domination.",
+    sacrificed: "When Equality is your sacrificed pole, your answers show a willingness to tolerate unequal outcomes, rank, inherited structure, or different social standing when Freedom or Stability seems more important.",
+    compass: "You read politics through standing: a society is legitimate when people are not reduced to dependents, servants, castes, or disposable outsiders.",
+    warning: "Equality without balancing forces can become enforced sameness, dependency, moral coercion, suppression of excellence, and care that hardens into control."
+  },
+  stability: {
+    question: "What can society preserve, coordinate, and become?",
+    subject: "society as a collective body with memory, institutions, borders, offices, duties, and long-term survival needs",
+    socialLogic: "command and continuity: hierarchy, office, law, bureaucracy, military discipline, borders, rank, and inherited structure",
+    fear: "collapse, chaos, rootlessness, decadence, civil fragmentation, and loss of the ability to act as one people",
+    first: "Your first political reflex is to protect the order that lets a society survive across time. When a tradeoff appears, you usually ask whether institutions, continuity, duty, borders, social trust, and collective capacity will endure.",
+    second: "As a secondary virtue, Stability gives your politics a concern for consequences and durability. You may support liberty or equality, but you prefer reforms that preserve institutional memory and social coherence.",
+    sacrificed: "When Stability is your sacrificed pole, your answers show a willingness to disrupt order, weaken inherited authority, or accept institutional instability when Freedom or Equality seems morally necessary.",
+    compass: "You read politics historically: a society is not only a set of individuals or equal claimants, but a body that must coordinate, remember, and survive.",
+    warning: "Stability without balancing forces can become tyranny, caste, stagnation, corruption, repression, and sacrifice of living people to the system."
+  }
+};
+
+const RESULT_DOMAINS = [
+  {
+    id: "economics",
+    label: "Economics",
+    keywords: ["market", "corporate", "property", "labor", "wage", "monopoly", "bailout", "protectionism", "financial", "tax", "licensing", "developer"]
+  },
+  {
+    id: "personal_autonomy",
+    label: "Personal autonomy",
+    keywords: ["speech", "body", "bodily", "medicine", "drug", "personal", "optout", "risk"]
+  },
+  {
+    id: "welfare",
+    label: "Welfare and provision",
+    keywords: ["welfare", "housing", "utility", "health", "school", "transit", "educational", "infrastructure equity", "universal provision"]
+  },
+  {
+    id: "institutions",
+    label: "Institutions and order",
+    keywords: ["institution", "bureaucracy", "justice", "security", "law", "merit", "fiscal", "infrastructure", "public order", "systemic"]
+  },
+  {
+    id: "culture",
+    label: "Culture and belonging",
+    keywords: ["tradition", "assimilation", "community", "zoning", "loyalty", "protest", "noise", "cultural", "generational"]
+  }
+];
+
 const state = {
   questions: [],
   byId: new Map(),
@@ -121,7 +204,11 @@ const state = {
   answers: {},
   activeView: "virtues",
   selectedPointId: null,
-  lastResult: null
+  lastResult: null,
+  editor: {
+    draft: null,
+    selectedPointId: null
+  }
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -146,12 +233,28 @@ const els = {
   nextQuestion: $("#nextQuestion"),
   quizStatus: $("#quizStatus"),
   resultSummary: $("#resultSummary"),
+  resultOverview: $("#resultOverview"),
   resultBars: $("#resultBars"),
   resultReading: $("#resultReading"),
   copyResultLink: $("#copyResultLink"),
   resumeQuiz: $("#resumeQuiz"),
-  resumeHomeLink: $("#resumeHomeLink"),
-  selectionConnector: $("#selectionConnector")
+  selectionConnector: $("#selectionConnector"),
+  editorCanvas: $("#editorCanvas"),
+  editorTitleInput: $("#editorTitleInput"),
+  editorSubtitleInput: $("#editorSubtitleInput"),
+  editorAxisSelect: $("#editorAxisSelect"),
+  editorAxisLabel: $("#editorAxisLabel"),
+  editorAxisNote: $("#editorAxisNote"),
+  editorExportDarkMode: $("#editorExportDarkMode"),
+  editorPointLabel: $("#editorPointLabel"),
+  editorPointTone: $("#editorPointTone"),
+  editorPointList: $("#editorPointList"),
+  editorPointCount: $("#editorPointCount"),
+  editorStatus: $("#editorStatus"),
+  addEditorPoint: $("#addEditorPoint"),
+  removeEditorPoint: $("#removeEditorPoint"),
+  clearEditorDraft: $("#clearEditorDraft"),
+  exportEditorPng: $("#exportEditorPng")
 };
 
 init();
@@ -160,7 +263,6 @@ async function init() {
   initTheme();
   initHeroPrismMap();
   initTriangle();
-  initResumeLinks();
 
   const page = document.body.dataset.page || "home";
   if (page === "quiz") {
@@ -170,6 +272,9 @@ async function init() {
   if (page === "results") {
     await loadQuestions();
     initResultsPage();
+  }
+  if (page === "editor") {
+    initEditor();
   }
 }
 
@@ -235,11 +340,6 @@ function initHeroPrismMap() {
   ctx.putImageData(image, 0, 0);
 }
 
-function initResumeLinks() {
-  const latest = localStorage.getItem("prism-resume-url");
-  if (latest && els.resumeHomeLink) els.resumeHomeLink.href = latest;
-}
-
 function initTheme() {
   const stored = localStorage.getItem("prism-theme");
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -253,12 +353,14 @@ function initTheme() {
       setTheme(next);
     });
   });
+
 }
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light";
+  const isDark = document.documentElement.dataset.theme === "dark";
   $$("[data-theme-toggle]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(document.documentElement.dataset.theme === "dark"));
+    button.setAttribute("aria-pressed", String(isDark));
   });
 }
 
@@ -284,7 +386,885 @@ function initTriangle() {
     const point = currentLayerPoint();
     if (point) renderSelectionConnector(point);
   });
-  renderLayer("units");
+  renderLayer(document.body.dataset.page === "results" ? "virtues" : "units");
+}
+
+function initEditor() {
+  if (!els.editorCanvas) return;
+
+  state.editor.draft = readEditorDraft();
+  state.editor.selectedPointId = state.editor.draft.points[0]?.id || null;
+  bindEditorEvents();
+  renderEditor();
+}
+
+function bindEditorEvents() {
+  els.addEditorPoint?.addEventListener("click", () => {
+    const point = createEditorPoint();
+    state.editor.draft.points.push(point);
+    state.editor.selectedPointId = point.id;
+    persistEditorDraft();
+    renderEditor();
+    setEditorStatus("Point added.");
+  });
+
+  els.removeEditorPoint?.addEventListener("click", () => {
+    const point = selectedEditorPoint();
+    if (!point) return;
+    state.editor.draft.points = state.editor.draft.points.filter((candidate) => candidate.id !== point.id);
+    state.editor.selectedPointId = state.editor.draft.points[0]?.id || null;
+    persistEditorDraft();
+    renderEditor();
+    setEditorStatus("Point removed.");
+  });
+
+  els.clearEditorDraft?.addEventListener("click", () => {
+    if (!window.confirm("Clear the current prism draft?")) return;
+    state.editor.draft = cloneEditorDefaultDraft();
+    state.editor.selectedPointId = null;
+    persistEditorDraft();
+    renderEditor();
+    setEditorStatus("Draft cleared.");
+  });
+
+  els.exportEditorPng?.addEventListener("click", () => {
+    exportEditorPng();
+  });
+
+  els.editorTitleInput?.addEventListener("input", () => {
+    state.editor.draft.title = els.editorTitleInput.value;
+    persistEditorDraft();
+    renderEditorTriangle();
+  });
+
+  els.editorSubtitleInput?.addEventListener("input", () => {
+    state.editor.draft.subtitle = els.editorSubtitleInput.value;
+    persistEditorDraft();
+    renderEditorTriangle();
+  });
+
+  els.editorExportDarkMode?.addEventListener("change", () => {
+    state.editor.draft.exportDark = Boolean(els.editorExportDarkMode.checked);
+    persistEditorDraft();
+    setEditorStatus(state.editor.draft.exportDark ? "Dark export enabled." : "Light export enabled.");
+  });
+
+  els.editorAxisSelect?.addEventListener("change", () => {
+    renderEditorForm();
+  });
+
+  els.editorAxisLabel?.addEventListener("input", () => {
+    const axis = selectedEditorAxis();
+    if (!axis) return;
+    state.editor.draft.axes[axis].label = els.editorAxisLabel.value;
+    persistEditorDraft();
+    renderEditorTriangle();
+  });
+
+  els.editorAxisNote?.addEventListener("input", () => {
+    const axis = selectedEditorAxis();
+    if (!axis) return;
+    state.editor.draft.axes[axis].note = els.editorAxisNote.value;
+    persistEditorDraft();
+    renderEditorTriangle();
+  });
+
+  els.editorPointLabel?.addEventListener("input", () => {
+    const point = selectedEditorPoint();
+    if (!point) return;
+    point.label = els.editorPointLabel.value;
+    persistEditorDraft();
+    renderEditorTriangle();
+    renderEditorPointList();
+  });
+
+  els.editorPointTone?.addEventListener("change", () => {
+    const point = selectedEditorPoint();
+    if (!point) return;
+    point.tone = sanitizeEditorTone(els.editorPointTone.value);
+    persistEditorDraft();
+    renderEditorTriangle();
+    renderEditorPointList();
+  });
+}
+
+function renderEditor() {
+  renderEditorForm();
+  renderEditorTriangle();
+  renderEditorPointList();
+}
+
+function renderEditorForm() {
+  const draft = state.editor.draft || cloneEditorDefaultDraft();
+  const point = selectedEditorPoint();
+
+  if (els.editorTitleInput) els.editorTitleInput.value = draft.title;
+  if (els.editorSubtitleInput) els.editorSubtitleInput.value = draft.subtitle;
+  if (els.editorExportDarkMode) els.editorExportDarkMode.checked = Boolean(draft.exportDark);
+  const axis = selectedEditorAxis() || "freedom";
+  const axisData = getEditorAxisData(axis);
+  if (els.editorAxisSelect) els.editorAxisSelect.value = axis;
+  if (els.editorAxisLabel) els.editorAxisLabel.value = axisData.label;
+  if (els.editorAxisNote) els.editorAxisNote.value = axisData.note;
+  if (els.editorPointCount) {
+    const count = draft.points.length;
+    els.editorPointCount.textContent = `${count} ${count === 1 ? "point" : "points"}`;
+  }
+
+  [els.editorPointLabel, els.editorPointTone, els.removeEditorPoint].forEach((control) => {
+    if (control) control.disabled = !point;
+  });
+
+  if (els.editorPointLabel) els.editorPointLabel.value = point?.label || "";
+  if (els.editorPointTone) els.editorPointTone.value = point?.tone || "freedom";
+}
+
+function renderEditorTriangle() {
+  if (!els.editorCanvas || !state.editor.draft) return;
+
+  const width = 620;
+  const height = 620;
+  const verticesByAxis = DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = AXES[axis].vertex;
+    return collection;
+  }, {});
+  const vertices = DISPLAY_ORDER.map((axis) => verticesByAxis[axis]);
+  const nodes = state.editor.draft.points.map((point) => renderEditorSvgNode(point)).join("");
+
+  els.editorCanvas.innerHTML = `
+    <canvas class="tri-gradient-canvas" width="${width}" height="${height}" data-editor-gradient aria-hidden="true"></canvas>
+    <div class="editor-canvas-copy" aria-hidden="true">
+      <p>${escapeHtml(state.editor.draft.title || "Custom Political Prism")}</p>
+      <span>${escapeHtml(state.editor.draft.subtitle || "")}</span>
+    </div>
+    <svg class="editor-triangle-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Editable Political Prism triangle">
+      <defs>
+        <linearGradient id="editorEdgeEqualityFreedom" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.equality.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.freedom.color}"></stop>
+        </linearGradient>
+        <linearGradient id="editorEdgeFreedomStability" x1="${verticesByAxis.freedom.x}" y1="${verticesByAxis.freedom.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.freedom.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}"></stop>
+        </linearGradient>
+        <linearGradient id="editorEdgeEqualityStability" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${AXES.equality.color}"></stop>
+          <stop offset="100%" stop-color="${AXES.stability.color}"></stop>
+        </linearGradient>
+        <filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+        <filter id="nodeGlow" x="-160%" y="-160%" width="420%" height="420%">
+          <feGaussianBlur stdDeviation="7" result="blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+      </defs>
+      <rect class="editor-hit-surface" width="${width}" height="${height}" fill="transparent"></rect>
+      ${buildGridLines()}
+      <line class="tri-edge" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" stroke="url(#editorEdgeEqualityFreedom)"></line>
+      <line class="tri-edge" x1="${verticesByAxis.freedom.x}" y1="${verticesByAxis.freedom.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" stroke="url(#editorEdgeFreedomStability)"></line>
+      <line class="tri-edge" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" stroke="url(#editorEdgeEqualityStability)"></line>
+      <polygon class="tri-boundary" points="${pointsAttr(vertices)}"></polygon>
+      ${renderAxisLabels(state.editor.draft.axes)}
+      ${nodes}
+    </svg>
+  `;
+
+  drawTriangleGradient(els.editorCanvas.querySelector("[data-editor-gradient]"), verticesByAxis);
+
+  const svg = els.editorCanvas.querySelector(".editor-triangle-svg");
+  svg?.addEventListener("pointerdown", handleEditorCanvasPointer);
+  els.editorCanvas.querySelectorAll(".editor-tri-node").forEach((node) => {
+    const id = node.dataset.point;
+    node.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      selectEditorPoint(id);
+    });
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectEditorPoint(id);
+      }
+    });
+  });
+}
+
+function renderEditorSvgNode(point) {
+  const position = pointFromWeights(point.weights);
+  const selected = point.id === state.editor.selectedPointId ? " is-selected" : "";
+  const color = AXES[point.tone]?.color || AXES.freedom.color;
+
+  return `
+    <g class="tri-node editor-tri-node${selected}" data-point="${point.id}" tabindex="0" role="button" aria-label="${escapeHtml(point.label || "Point")}" transform="translate(${position.x} ${position.y})">
+      ${renderDot(color)}
+      ${renderSvgLabel(point.label || "Point")}
+    </g>
+  `;
+}
+
+function renderEditorPointList() {
+  if (!els.editorPointList || !state.editor.draft) return;
+  const points = state.editor.draft.points;
+  if (!points.length) {
+    els.editorPointList.innerHTML = `<p class="empty-editor-list">No points</p>`;
+    return;
+  }
+
+  els.editorPointList.innerHTML = points.map((point) => `
+    <button type="button" class="${point.id === state.editor.selectedPointId ? "is-selected" : ""}" data-point="${point.id}">
+      <span>${escapeHtml(point.label || "Point")}</span>
+      <small>${escapeHtml(AXES[point.tone]?.label || "Freedom")}</small>
+    </button>
+  `).join("");
+
+  els.editorPointList.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => selectEditorPoint(button.dataset.point));
+  });
+}
+
+function handleEditorCanvasPointer(event) {
+  const weights = editorWeightsFromEvent(event);
+  if (!weights) return;
+
+  let point = selectedEditorPoint();
+  if (!point) {
+    point = createEditorPoint(weights);
+    state.editor.draft.points.push(point);
+    state.editor.selectedPointId = point.id;
+  } else {
+    point.weights = weights;
+  }
+
+  persistEditorDraft();
+  renderEditor();
+  setEditorStatus("Draft saved.");
+}
+
+function editorWeightsFromEvent(event) {
+  const svg = event.currentTarget;
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const point = {
+    x: ((event.clientX - rect.left) / rect.width) * 620,
+    y: ((event.clientY - rect.top) / rect.height) * 620
+  };
+  const weights = weightsFromPoint(point);
+  return weightsAreInsideTriangle(weights) ? normalizeEditorWeights(weights) : null;
+}
+
+function weightsFromPoint(point) {
+  const vertices = {
+    equality: AXES.equality.vertex,
+    freedom: AXES.freedom.vertex,
+    stability: AXES.stability.vertex
+  };
+  const denominator =
+    (vertices.freedom.y - vertices.stability.y) * (vertices.equality.x - vertices.stability.x) +
+    (vertices.stability.x - vertices.freedom.x) * (vertices.equality.y - vertices.stability.y);
+  const equality =
+    ((vertices.freedom.y - vertices.stability.y) * (point.x - vertices.stability.x) +
+      (vertices.stability.x - vertices.freedom.x) * (point.y - vertices.stability.y)) / denominator;
+  const freedom =
+    ((vertices.stability.y - vertices.equality.y) * (point.x - vertices.stability.x) +
+      (vertices.equality.x - vertices.stability.x) * (point.y - vertices.stability.y)) / denominator;
+  const stability = 1 - equality - freedom;
+
+  return { freedom, equality, stability };
+}
+
+function weightsAreInsideTriangle(weights) {
+  return DISPLAY_ORDER.every((axis) => weights[axis] >= -0.002 && weights[axis] <= 1.002);
+}
+
+function selectedEditorPoint() {
+  const points = state.editor.draft?.points || [];
+  return points.find((point) => point.id === state.editor.selectedPointId);
+}
+
+function selectedEditorAxis() {
+  const axis = els.editorAxisSelect?.value || "freedom";
+  return DISPLAY_ORDER.includes(axis) ? axis : "freedom";
+}
+
+function getEditorAxisData(axis) {
+  return getAxisDisplay(axis, state.editor.draft?.axes);
+}
+
+function getAxisDisplay(axis, axes) {
+  const base = AXES[axis] || AXES.freedom;
+  const custom = axes?.[axis] || {};
+  return {
+    ...base,
+    label: sanitizeText(custom.label, base.label, 28).trim() || base.label,
+    note: sanitizeText(custom.note, base.note, 72).trim() || base.note
+  };
+}
+
+function selectEditorPoint(id) {
+  state.editor.selectedPointId = id || null;
+  renderEditor();
+}
+
+function createEditorPoint(weights = { freedom: 0.34, equality: 0.33, stability: 0.33 }) {
+  const index = (state.editor.draft?.points?.length || 0) + 1;
+  return {
+    id: editorPointId(),
+    label: `Point ${index}`,
+    tone: "freedom",
+    weights: normalizeEditorWeights(weights)
+  };
+}
+
+function readEditorDraft() {
+  try {
+    const raw = localStorage.getItem(EDITOR_STORAGE_KEY);
+    if (raw) return sanitizeEditorDraft(JSON.parse(raw));
+  } catch (error) {
+    console.error(error);
+  }
+  return cloneEditorDefaultDraft();
+}
+
+function persistEditorDraft() {
+  try {
+    localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify(state.editor.draft));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function cloneEditorDefaultDraft() {
+  return JSON.parse(JSON.stringify(EDITOR_DEFAULT_DRAFT));
+}
+
+function sanitizeEditorDraft(value) {
+  const fallback = cloneEditorDefaultDraft();
+  if (!value || typeof value !== "object") return fallback;
+  const points = Array.isArray(value.points) ? value.points.slice(0, 24).map(sanitizeEditorPoint).filter(Boolean) : [];
+  return {
+    title: sanitizeText(value.title, fallback.title, 80),
+    subtitle: sanitizeText(value.subtitle, fallback.subtitle, 180),
+    exportDark: Boolean(value.exportDark),
+    axes: sanitizeEditorAxes(value.axes),
+    points
+  };
+}
+
+function sanitizeEditorAxes(axes = {}) {
+  return DISPLAY_ORDER.reduce((collection, axis) => {
+    const fallback = EDITOR_DEFAULT_DRAFT.axes[axis];
+    const value = axes?.[axis] || {};
+    collection[axis] = {
+      label: sanitizeText(value.label, fallback.label, 28).trim() || fallback.label,
+      note: sanitizeText(value.note, fallback.note, 72).trim() || fallback.note
+    };
+    return collection;
+  }, {});
+}
+
+function sanitizeEditorPoint(point) {
+  if (!point || typeof point !== "object") return null;
+  return {
+    id: sanitizeText(point.id, editorPointId(), 80),
+    label: sanitizeText(point.label, "Point", 48),
+    tone: sanitizeEditorTone(point.tone),
+    weights: normalizeEditorWeights(point.weights)
+  };
+}
+
+function sanitizeEditorTone(tone) {
+  return DISPLAY_ORDER.includes(tone) ? tone : "freedom";
+}
+
+function sanitizeText(value, fallback, maxLength) {
+  const text = typeof value === "string" ? value : fallback;
+  return text.slice(0, maxLength);
+}
+
+function normalizeEditorWeights(weights = {}) {
+  const clean = DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = Math.max(0, Number(weights[axis]) || 0);
+    return collection;
+  }, {});
+  const total = DISPLAY_ORDER.reduce((sum, axis) => sum + clean[axis], 0);
+  if (total <= 0.0001) return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
+  return DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = clean[axis] / total;
+    return collection;
+  }, {});
+}
+
+function editorPointId() {
+  return `point-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function setEditorStatus(message) {
+  if (!els.editorStatus) return;
+  els.editorStatus.textContent = message;
+}
+
+async function exportEditorPng() {
+  if (!state.editor.draft) return;
+  const button = els.exportEditorPng;
+  const label = button?.querySelector("span");
+  const original = label?.textContent || "Export PNG";
+  if (button) button.disabled = true;
+  if (label) label.textContent = "Exporting";
+
+  try {
+    await document.fonts?.ready;
+    const canvas = document.createElement("canvas");
+    canvas.width = EDITOR_EXPORT_SIZE.width;
+    canvas.height = EDITOR_EXPORT_SIZE.height;
+    const ctx = canvas.getContext("2d");
+    drawEditorExport(ctx, state.editor.draft);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.96));
+    if (!blob) throw new Error("PNG export failed.");
+    downloadBlob(blob, editorExportFilename());
+    setEditorStatus("PNG exported.");
+  } catch (error) {
+    console.error(error);
+    setEditorStatus("Export failed.");
+  } finally {
+    if (button) button.disabled = false;
+    if (label) label.textContent = original;
+  }
+}
+
+function drawEditorExport(ctx, draft) {
+  const colors = editorThemeColors(Boolean(draft.exportDark));
+  const layout = {
+    left: 118,
+    top: 126,
+    scale: 1.85
+  };
+  layout.vertices = DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = exportPointFromBase(AXES[axis].vertex, layout);
+    return collection;
+  }, {});
+
+  drawExportBackground(ctx, colors);
+  drawExportHeading(ctx, draft, colors);
+  drawExportTriangle(ctx, layout, colors, draft.axes);
+  draft.points.forEach((point) => drawExportPoint(ctx, point, layout));
+  drawExportFooter(ctx, colors);
+}
+
+function drawExportBackground(ctx, colors) {
+  ctx.fillStyle = colors.paper;
+  ctx.fillRect(0, 0, EDITOR_EXPORT_SIZE.width, EDITOR_EXPORT_SIZE.height);
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  for (let x = 0.5; x <= EDITOR_EXPORT_SIZE.width; x += 48) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, EDITOR_EXPORT_SIZE.height);
+    ctx.stroke();
+  }
+  for (let y = 0.5; y <= EDITOR_EXPORT_SIZE.height; y += 48) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(EDITOR_EXPORT_SIZE.width, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawExportHeading(ctx, draft, colors) {
+  const x = 64;
+  let y = 108;
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = colors.ink;
+  ctx.font = "750 46px Fraunces, Georgia, serif";
+  y = drawWrappedCanvasText(ctx, draft.title || "Custom Political Prism", x, y, 390, 54, 3);
+  ctx.fillStyle = colors.exportSubtitle;
+  ctx.font = "400 22px 'Source Serif 4', Georgia, serif";
+  drawWrappedCanvasText(ctx, draft.subtitle || "", x, y + 22, 580, 36, 4);
+  ctx.restore();
+}
+
+function drawExportTriangle(ctx, layout, colors, axes) {
+  drawExportTriangleGradient(ctx, layout.vertices);
+  drawExportGrid(ctx, layout, colors);
+  drawExportEdges(ctx, layout);
+  drawExportAxisLabels(ctx, layout, colors, axes);
+}
+
+function drawExportTriangleGradient(ctx, vertices) {
+  const bounds = triangleBounds(vertices);
+  const temp = document.createElement("canvas");
+  temp.width = bounds.width;
+  temp.height = bounds.height;
+  const tempCtx = temp.getContext("2d");
+  const image = tempCtx.createImageData(bounds.width, bounds.height);
+
+  for (let pixelY = 0; pixelY < bounds.height; pixelY += 1) {
+    for (let pixelX = 0; pixelX < bounds.width; pixelX += 1) {
+      const x = bounds.left + pixelX + 0.5;
+      const y = bounds.top + pixelY + 0.5;
+      const weights = weightsFromVertices({ x, y }, vertices);
+      const index = (pixelY * bounds.width + pixelX) * 4;
+      if (!weightsAreInsideTriangle(weights)) {
+        image.data[index + 3] = 0;
+        continue;
+      }
+
+      const strengths = DISPLAY_ORDER.reduce((collection, axis) => {
+        collection[axis] = Math.pow(Math.max(0, weights[axis]), 0.72) * 0.96;
+        return collection;
+      }, {});
+      const red = screenColorChannel(0, strengths);
+      const green = screenColorChannel(1, strengths);
+      const blue = screenColorChannel(2, strengths);
+      const centerLift = Math.min(weights.equality, weights.freedom, weights.stability) * 3;
+      const enhanced = enhanceColor(red, green, blue, 1.12 + (1 - centerLift) * 0.16, 1.04 + centerLift * 0.15);
+
+      image.data[index] = enhanced.red;
+      image.data[index + 1] = enhanced.green;
+      image.data[index + 2] = enhanced.blue;
+      image.data[index + 3] = 246;
+    }
+  }
+
+  tempCtx.putImageData(image, 0, 0);
+  ctx.drawImage(temp, bounds.left, bounds.top);
+}
+
+function drawExportGrid(ctx, layout, colors) {
+  ctx.save();
+  ctx.strokeStyle = colors.triangleGrid;
+  ctx.lineWidth = 1.4;
+  [0.25, 0.5, 0.75].forEach((value) => {
+    const f1 = exportPointFromWeights({ freedom: value, equality: 0, stability: 1 - value }, layout);
+    const f2 = exportPointFromWeights({ freedom: value, equality: 1 - value, stability: 0 }, layout);
+    const e1 = exportPointFromWeights({ freedom: 0, equality: value, stability: 1 - value }, layout);
+    const e2 = exportPointFromWeights({ freedom: 1 - value, equality: value, stability: 0 }, layout);
+    const s1 = exportPointFromWeights({ freedom: 0, equality: 1 - value, stability: value }, layout);
+    const s2 = exportPointFromWeights({ freedom: 1 - value, equality: 0, stability: value }, layout);
+    drawCanvasLine(ctx, f1, f2);
+    drawCanvasLine(ctx, e1, e2);
+    drawCanvasLine(ctx, s1, s2);
+  });
+  ctx.restore();
+}
+
+function drawExportEdges(ctx, layout) {
+  const edges = [
+    ["equality", "freedom"],
+    ["freedom", "stability"],
+    ["equality", "stability"]
+  ];
+  ctx.save();
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = "rgba(255, 250, 240, 0.22)";
+  edges.forEach(([from, to]) => {
+    const start = layout.vertices[from];
+    const end = layout.vertices[to];
+    const gradient = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+    gradient.addColorStop(0, AXES[from].color);
+    gradient.addColorStop(1, AXES[to].color);
+    ctx.strokeStyle = gradient;
+    drawCanvasLine(ctx, start, end);
+  });
+  ctx.restore();
+}
+
+function drawExportAxisLabels(ctx, layout, colors, axes) {
+  const labelOffsets = {
+    freedom: { x: 42, y: -56, align: "right" },
+    equality: { x: -132, y: -72, align: "left" },
+    stability: { x: 42, y: 42, align: "right" }
+  };
+  const noteOffsets = {
+    freedom: { x: 42, y: -36, align: "right" },
+    equality: { x: -132, y: -50, align: "left" },
+    stability: { x: 42, y: 62, align: "right" }
+  };
+
+  DISPLAY_ORDER.forEach((axis) => {
+    const vertex = layout.vertices[axis];
+    const data = getAxisDisplay(axis, axes);
+    drawExportDot(ctx, vertex.x, vertex.y, data.color, true);
+
+    const labelOffset = labelOffsets[axis];
+    const labelY = vertex.y + labelOffset.y * layout.scale;
+    ctx.save();
+    ctx.textAlign = labelOffset.align;
+    ctx.fillStyle = data.color;
+    ctx.font = "750 44px Fraunces, Georgia, serif";
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = data.color;
+    const labelLines = drawCanvasAxisText(ctx, data.label, vertex.x + labelOffset.x * layout.scale, labelY, labelOffset.align, 240, 44, 2, 24);
+    ctx.restore();
+
+    const noteOffset = noteOffsets[axis];
+    ctx.save();
+    ctx.textAlign = noteOffset.align;
+    ctx.fillStyle = colors.axisNote;
+    ctx.font = "400 23px 'Source Serif 4', Georgia, serif";
+    const noteY = Math.max(vertex.y + noteOffset.y * layout.scale, labelY + labelLines * 34);
+    const noteMaxWidth = axis === "equality" ? 260 : 520;
+    const noteMaxLines = axis === "equality" ? 2 : 1;
+    const noteMaxChars = axis === "equality" ? 25 : 80;
+    drawCanvasAxisText(ctx, data.note, vertex.x + noteOffset.x * layout.scale, noteY, noteOffset.align, noteMaxWidth, 30, noteMaxLines, noteMaxChars);
+    ctx.restore();
+  });
+}
+
+function drawExportPoint(ctx, point, layout) {
+  const position = exportPointFromWeights(point.weights, layout);
+  const color = AXES[point.tone]?.color || AXES.freedom.color;
+  drawExportDot(ctx, position.x, position.y, color, false);
+
+  const lines = splitLabel(point.label || "Point");
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "700 25px 'Source Serif 4', Georgia, serif";
+  lines.forEach((line, index) => {
+    const y = position.y + 43 + index * 27;
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = "rgba(8, 12, 16, 0.78)";
+    ctx.strokeText(line, position.x, y);
+    ctx.fillStyle = "#fffaf0";
+    ctx.fillText(line, position.x, y);
+  });
+  ctx.restore();
+}
+
+function drawExportDot(ctx, x, y, color, selected) {
+  ctx.save();
+  const rgb = hexToRgb(color);
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, selected ? 58 : 45);
+  glow.addColorStop(0, `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${selected ? 0.48 : 0.36})`);
+  glow.addColorStop(1, `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, 0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, selected ? 58 : 45, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  ctx.globalAlpha = selected ? 0.54 : 0.38;
+  ctx.beginPath();
+  ctx.arc(x, y, selected ? 25 : 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#fffaf0";
+  ctx.lineWidth = selected ? 6 : 5;
+  ctx.beginPath();
+  ctx.arc(x, y, selected ? 14 : 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function exportPointFromBase(point, layout) {
+  return {
+    x: layout.left + point.x * layout.scale,
+    y: layout.top + point.y * layout.scale
+  };
+}
+
+function exportPointFromWeights(weights, layout) {
+  return exportPointFromBase(pointFromWeights(weights), layout);
+}
+
+function weightsFromVertices(point, vertices) {
+  const denominator =
+    (vertices.freedom.y - vertices.stability.y) * (vertices.equality.x - vertices.stability.x) +
+    (vertices.stability.x - vertices.freedom.x) * (vertices.equality.y - vertices.stability.y);
+  const equality =
+    ((vertices.freedom.y - vertices.stability.y) * (point.x - vertices.stability.x) +
+      (vertices.stability.x - vertices.freedom.x) * (point.y - vertices.stability.y)) / denominator;
+  const freedom =
+    ((vertices.stability.y - vertices.equality.y) * (point.x - vertices.stability.x) +
+      (vertices.equality.x - vertices.stability.x) * (point.y - vertices.stability.y)) / denominator;
+  return { equality, freedom, stability: 1 - equality - freedom };
+}
+
+function triangleBounds(vertices) {
+  const xs = DISPLAY_ORDER.map((axis) => vertices[axis].x);
+  const ys = DISPLAY_ORDER.map((axis) => vertices[axis].y);
+  const left = Math.floor(Math.min(...xs));
+  const right = Math.ceil(Math.max(...xs));
+  const top = Math.floor(Math.min(...ys));
+  const bottom = Math.ceil(Math.max(...ys));
+  return {
+    left,
+    top,
+    width: right - left + 1,
+    height: bottom - top + 1
+  };
+}
+
+function drawCanvasLine(ctx, start, end) {
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+}
+
+function drawWrappedCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  const lines = canvasTextLines(ctx, text, maxWidth).slice(0, maxLines);
+  lines.forEach((line) => {
+    ctx.fillText(line, x, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
+function canvasTextLines(ctx, text, maxWidth, font) {
+  ctx.save();
+  if (font) ctx.font = font;
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  if (!words.length) {
+    ctx.restore();
+    return [];
+  }
+
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth || !line) {
+      line = test;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  });
+  if (line) lines.push(line);
+  ctx.restore();
+  return lines;
+}
+
+function drawCanvasAxisText(ctx, text, x, y, align, maxWidth, lineHeight, maxLines, maxChars) {
+  const lines = clampTextLines(canvasTextLines(ctx, text, maxWidth), maxLines, maxChars);
+  ctx.textAlign = align;
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
+  return lines.length;
+}
+
+function wrapTextByChars(text, maxChars) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const test = line ? `${line} ${word}` : word;
+    if (test.length <= maxChars || !line) {
+      line = test;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function clampTextLines(lines, maxLines, maxChars) {
+  const clean = lines.filter(Boolean);
+  if (clean.length <= maxLines) return clean.map((line) => ellipsizeText(line, maxChars));
+  const kept = clean.slice(0, maxLines).map((line) => ellipsizeText(line, maxChars));
+  kept[kept.length - 1] = ellipsizeText(kept[kept.length - 1], Math.max(1, maxChars - 1));
+  if (!kept[kept.length - 1].endsWith("...")) kept[kept.length - 1] += "...";
+  return kept;
+}
+
+function ellipsizeText(text, maxChars) {
+  const value = String(text || "");
+  if (value.length <= maxChars) return value;
+  return `${value.slice(0, Math.max(0, maxChars - 3)).trimEnd()}...`;
+}
+
+function roundRectPath(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawExportFooter(ctx, colors) {
+  ctx.save();
+  ctx.fillStyle = colors.footer;
+  ctx.font = "400 18px 'Source Serif 4', Georgia, serif";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(EDITOR_EXPORT_URL, 64, EDITOR_EXPORT_SIZE.height - 48);
+  ctx.restore();
+}
+
+function hexToRgb(hex) {
+  const normalized = String(hex).replace("#", "");
+  const value = normalized.length === 3
+    ? normalized.split("").map((char) => `${char}${char}`).join("")
+    : normalized;
+  const number = Number.parseInt(value, 16);
+  return {
+    red: (number >> 16) & 255,
+    green: (number >> 8) & 255,
+    blue: number & 255
+  };
+}
+
+function editorThemeColors(forceDark) {
+  const dark = typeof forceDark === "boolean" ? forceDark : document.documentElement.dataset.theme === "dark";
+  return {
+    paper: dark ? "#0f1114" : "#f4f1e8",
+    ink: dark ? "#f5f0e8" : "#171512",
+    muted: dark ? "#aeb4bd" : "#5f6268",
+    softText: dark ? "#d7dbe0" : "#36383b",
+    exportSubtitle: dark ? "#c6cbd3" : "#5f6268",
+    footer: dark ? "rgba(174, 180, 189, 0.78)" : "rgba(95, 98, 104, 0.82)",
+    grid: dark ? "rgba(108, 116, 128, 0.16)" : "rgba(118, 124, 132, 0.14)",
+    triangleGrid: "rgba(255, 250, 240, 0.18)",
+    axisNote: dark ? "rgba(246, 241, 232, 0.72)" : "rgba(255, 250, 240, 0.78)",
+    panel: dark ? "rgba(24, 27, 31, 0.9)" : "rgba(255, 250, 240, 0.9)",
+    panelBorder: dark ? "rgba(98, 106, 116, 0.9)" : "rgba(154, 156, 159, 0.9)"
+  };
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function editorExportFilename() {
+  const slug = (state.editor.draft?.title || "political-prism")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 42) || "political-prism";
+  return `${slug}.png`;
 }
 
 function initQuizPage() {
@@ -390,6 +1370,7 @@ function moveQuestion(delta) {
 
 function renderNoResult() {
   if (els.resultSummary) els.resultSummary.textContent = "No result state was found. Start the quiz to generate a shareable result.";
+  if (els.resultOverview) els.resultOverview.innerHTML = "";
   if (els.resultBars) els.resultBars.innerHTML = "";
   if (els.resultReading) {
     els.resultReading.innerHTML = `
@@ -401,49 +1382,591 @@ function renderNoResult() {
 }
 
 function renderResults(result) {
-  const [first, second, third] = result.ranking;
-  const name = result.isBalanced
-    ? "Triangular Balancer"
-    : (RESULT_NAMES[first.axis]?.[second.axis] || `${AXES[first.axis].label} First`);
+  const analysis = buildResultAnalysis(result);
 
   if (els.resultSummary) {
-    els.resultSummary.textContent = `${name}: you protect ${AXES[first.axis].label} first, tolerate ${AXES[second.axis].label} second, and are most willing to sacrifice ${AXES[third.axis].label}.`;
+    els.resultSummary.textContent = analysis.summary;
+  }
+
+  if (els.resultOverview) {
+    els.resultOverview.innerHTML = renderResultOverview(result, analysis);
   }
 
   if (els.resultBars) {
-    els.resultBars.innerHTML = DISPLAY_ORDER.map((axis) => `
-      <div class="score-row">
-        <div class="score-top">
-          <span>${AXES[axis].label}</span>
-          <span>${Math.round(result.weights[axis] * 100)}%</span>
-        </div>
-        <div class="score-track">
-          <span style="width:${Math.round(result.weights[axis] * 100)}%; background:${AXES[axis].color}"></span>
-        </div>
-      </div>
-    `).join("");
+    els.resultBars.innerHTML = renderEvidencePanel(analysis);
   }
 
   if (els.resultReading) {
-    els.resultReading.innerHTML = `
-      <h2>${name}</h2>
-      <p>${escapeHtml(result.isBalanced ? "Your answers sit near the center of the prism. You resist letting any single virtue devour the other two." : AXES[first.axis].summary)}</p>
-      <dl>
-        <dt>Protects first</dt>
-        <dd>${AXES[first.axis].label}: ${escapeHtml(AXES[first.axis].summary)}</dd>
-        <dt>Tolerates second</dt>
-        <dd>${AXES[second.axis].label} remains a real concern, but usually after ${AXES[first.axis].label} is secured.</dd>
-        <dt>Sacrifices most</dt>
-        <dd>${AXES[third.axis].label} is the pole your answers most often trade away under pressure.</dd>
-        <dt>Likely blind spot</dt>
-        <dd>${escapeHtml(AXES[first.axis].blindSpot)}</dd>
-        <dt>Answered</dt>
-        <dd>${result.answered} of ${state.questions.length} questions using seed ${escapeHtml(state.seed)}.</dd>
-      </dl>
-    `;
+    els.resultReading.innerHTML = renderResultReading(result, analysis);
   }
 
   els.copyResultLink?.addEventListener("click", () => copyResultLink(new URL(resultsHref(), window.location.href).href));
+}
+
+function buildResultAnalysis(result) {
+  const [first, second, third] = result.ranking;
+  const records = answeredQuestionRecords();
+  const name = resultName(result);
+  const domains = buildDomainStats(records);
+  const pairShifts = buildPairShifts(records);
+  const changedPairShifts = pairShifts.filter((shift) => shift.changed);
+  const costSignals = records
+    .filter((record) => record.question.meta_category === "Cost of Principle")
+    .sort((a, b) => {
+      const aDifferent = a.supportedAxis !== first.axis ? 1 : 0;
+      const bDifferent = b.supportedAxis !== first.axis ? 1 : 0;
+      return bDifferent - aDifferent || b.strength - a.strength;
+    })
+    .slice(0, 3);
+  const strongestSignals = records
+    .filter((record) => record.supportedAxis)
+    .sort((a, b) => b.strength - a.strength)
+    .slice(0, 4);
+  const axisEvidence = DISPLAY_ORDER.reduce((collection, axis) => {
+    collection[axis] = {
+      positive: records
+        .filter((record) => record.contributions[axis] > 0)
+        .sort((a, b) => b.contributions[axis] - a.contributions[axis]),
+      negative: records
+        .filter((record) => record.contributions[axis] < 0)
+        .sort((a, b) => a.contributions[axis] - b.contributions[axis])
+    };
+    return collection;
+  }, {});
+  const nearbyIdeologies = nearestLayerPoints("ideologies", result.weights, 4);
+  const tension = buildInternalTension(first.axis, second.axis, domains, changedPairShifts, costSignals);
+  const blindSpot = buildBlindSpot(third.axis, axisEvidence[third.axis], domains);
+  const orderLine = result.ranking
+    .map((item) => `${AXES[item.axis].label} ${formatPercent(result.weights[item.axis])}`)
+    .join(" > ");
+  const summary = result.isBalanced
+    ? `${name}: ${orderLine}. Your answers keep all three virtues in play, with ${AXES[first.axis].label} only narrowly ahead.`
+    : `${name}: ${orderLine}. The report reads this as ${AXES[first.axis].label} first, ${AXES[second.axis].label} as the main restraint, and ${AXES[third.axis].label} least protected.`;
+
+  return {
+    name,
+    records,
+    domains,
+    pairShifts,
+    changedPairShifts,
+    costSignals,
+    strongestSignals,
+    axisEvidence,
+    nearbyIdeologies,
+    tension,
+    blindSpot,
+    orderLine,
+    summary,
+    roles: [
+      { label: "Dominant virtue", axis: first.axis, value: first.value },
+      { label: "Secondary restraint", axis: second.axis, value: second.value },
+      { label: "Least-protected", axis: third.axis, value: third.value }
+    ]
+  };
+}
+
+function resultName(result) {
+  const [first, second] = result.ranking;
+  return result.isBalanced
+    ? "Triangular Balancer"
+    : (RESULT_NAMES[first.axis]?.[second.axis] || `${AXES[first.axis].label} First`);
+}
+
+function renderResultOverview(result, analysis) {
+  return `
+    <article class="result-name-card">
+      <p class="kicker">Result name</p>
+      <h2>${escapeHtml(analysis.name)}</h2>
+      <p>${escapeHtml(resultOpeningSentence(result, analysis))}</p>
+    </article>
+    <article class="result-score-card">
+      <p class="kicker">Score order</p>
+      <ol class="result-score-order">
+        ${analysis.roles.map((role, index) => `
+          <li>
+            <span class="order-rank">${index + 1}</span>
+            <span>
+              <strong>${escapeHtml(AXES[role.axis].label)}</strong>
+              <small>${escapeHtml(role.label)}</small>
+            </span>
+            <em>${formatPercent(role.value)}</em>
+          </li>
+        `).join("")}
+      </ol>
+    </article>
+  `;
+}
+
+function resultOpeningSentence(result, analysis) {
+  const [dominant, secondary, least] = analysis.roles;
+  if (result.isBalanced) {
+    return `The coordinate is close to the center, so the order matters less than the refusal to let one virtue consume the others. ${AXES[dominant.axis].label} still edges ahead in the answered tradeoffs.`;
+  }
+  return `Your answers most often protect ${AXES[dominant.axis].label}, use ${AXES[secondary.axis].label} as the nearest check on that instinct, and leave ${AXES[least.axis].label} with the thinnest protection.`;
+}
+
+function renderEvidencePanel(analysis) {
+  return `
+    <p class="kicker">Answer evidence</p>
+    <h2>What shaped this</h2>
+    <p class="score-note">Built from ${analysis.records.length} answered questions, including vectors, pair IDs, subtypes, and meta categories.</p>
+    <div class="evidence-block">
+      <h3>Strongest signals</h3>
+      <ul class="evidence-list">
+        ${analysis.strongestSignals.map(renderEvidenceItem).join("") || "<li>No non-neutral answers were available.</li>"}
+      </ul>
+    </div>
+    <div class="evidence-block">
+      <h3>Question frames</h3>
+      <ul class="mini-stat-list">
+        ${renderMetaCounts(analysis.records)}
+      </ul>
+    </div>
+  `;
+}
+
+function renderEvidenceItem(record) {
+  return `
+    <li>
+      <strong>${escapeHtml(record.question.primary_subtype)}</strong>
+      <span>${escapeHtml(answerLabel(record.answerValue))}; ${escapeHtml(record.question.meta_category)}; ${escapeHtml(recordDirection(record))}.</span>
+    </li>
+  `;
+}
+
+function renderMetaCounts(records) {
+  const counts = countBy(records, (record) => record.question.meta_category);
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([label, count]) => `<li><span>${escapeHtml(label)}</span><strong>${count}</strong></li>`)
+    .join("");
+}
+
+function renderResultReading(result, analysis) {
+  return `
+    <div class="report-heading">
+      <p class="kicker">Answer-derived interpretation</p>
+      <h2>${escapeHtml(analysis.name)}</h2>
+      <p class="report-lead">${escapeHtml(analysis.summary)}</p>
+    </div>
+
+    <section class="report-section report-section-marked report-section-protected">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">01</span>
+        <h3>Protected, restrained, exposed</h3>
+      </div>
+      <div class="report-roles">
+        ${analysis.roles.map((role) => renderRoleCard(role, result, analysis)).join("")}
+      </div>
+    </section>
+
+    <section class="report-section report-section-marked report-section-principles">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">02</span>
+        <h3>Principles under pressure</h3>
+      </div>
+      ${renderPrinciplePressure(analysis)}
+    </section>
+
+    <section class="report-section report-section-marked report-section-domains">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">03</span>
+        <h3>Domain differences</h3>
+      </div>
+      <div class="domain-grid">
+        ${analysis.domains.map((domain) => renderDomainCard(domain, analysis.roles[0].axis)).join("")}
+      </div>
+    </section>
+
+    <section class="report-section report-section-marked report-section-ideologies">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">04</span>
+        <h3>Nearby ideological traditions</h3>
+      </div>
+      <p class="section-note">These are nearby reference traditions, not an absolute ideology label.</p>
+      <div class="ideology-neighbors">
+        ${analysis.nearbyIdeologies.map(renderIdeologyNeighbor).join("")}
+      </div>
+    </section>
+
+    <section class="report-section report-section-marked report-section-tensions">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">05</span>
+        <h3>Pressure points</h3>
+      </div>
+      <div class="insight-pair">
+        <article>
+          <p class="role-label">Internal tension</p>
+          <h3>${escapeHtml(analysis.tension.title)}</h3>
+          <p>${escapeHtml(analysis.tension.text)}</p>
+        </article>
+        <article>
+          <p class="role-label">Likely blind spot</p>
+          <h3>${escapeHtml(AXES[analysis.roles[2].axis].label)} underprotection</h3>
+          <p>${escapeHtml(analysis.blindSpot)}</p>
+        </article>
+      </div>
+    </section>
+
+    ${renderTechnicalDetails(result, analysis)}
+  `;
+}
+
+function renderRoleCard(role, result, analysis) {
+  const evidence = analysis.axisEvidence[role.axis];
+  const record = role.label === "Least-protected"
+    ? evidence.negative[0]
+    : evidence.positive[0];
+  const evidenceText = record
+    ? `${record.question.primary_subtype} (${record.question.meta_category})`
+    : "the answered set as a whole";
+  const copy = {
+    "Dominant virtue": `${AXES[role.axis].summary} This was strongest around ${evidenceText}.`,
+    "Secondary restraint": `${AXES[role.axis].label} does not lead, but it repeatedly limits how far ${AXES[analysis.roles[0].axis].label} can go. Its clearest evidence is ${evidenceText}.`,
+    "Least-protected": `${AXES[role.axis].label} is the virtue your answers most readily trade away. The clearest pressure against it appears around ${evidenceText}.`
+  }[role.label];
+
+  return `
+    <div>
+      <p class="role-label">${escapeHtml(role.label)}</p>
+      <h3>${escapeHtml(AXES[role.axis].label)} <span>${formatPercent(result.weights[role.axis])}</span></h3>
+      <p>${escapeHtml(copy)}</p>
+    </div>
+  `;
+}
+
+function renderPrinciplePressure(analysis) {
+  const shifts = analysis.changedPairShifts.slice(0, 2);
+  const stablePressure = analysis.pairShifts.find((shift) => !shift.changed);
+  const costSignals = analysis.costSignals.slice(0, 2);
+
+  return `
+    <div class="pressure-list">
+      ${shifts.map(renderPairShift).join("")}
+      ${!shifts.length && stablePressure ? renderStablePairPressure(stablePressure) : ""}
+      ${!shifts.length && !stablePressure ? "<p>No answered abstract/practical pair was available to compare.</p>" : ""}
+      ${costSignals.map(renderCostSignal).join("")}
+    </div>
+  `;
+}
+
+function renderPairShift(shift) {
+  return `
+    <article class="pressure-item">
+      <p class="role-label">${escapeHtml(formatPairId(shift.pairId))}</p>
+      <h4>${escapeHtml(AXES[shift.abstract.supportedAxis].label)} abstractly, ${escapeHtml(AXES[shift.applied.supportedAxis].label)} in application</h4>
+      <p>Your ${escapeHtml(shift.abstract.question.meta_category.toLowerCase())} answer on ${escapeHtml(shift.abstract.question.primary_subtype)} moved toward ${escapeHtml(AXES[shift.abstract.supportedAxis].label)}, but the ${escapeHtml(shift.applied.question.meta_category.toLowerCase())} case moved toward ${escapeHtml(AXES[shift.applied.supportedAxis].label)}.</p>
+    </article>
+  `;
+}
+
+function renderStablePairPressure(shift) {
+  return `
+    <article class="pressure-item">
+      <p class="role-label">${escapeHtml(formatPairId(shift.pairId))}</p>
+      <h4>No reversal in the strongest paired comparison</h4>
+      <p>Your abstract answer and applied case both leaned toward ${escapeHtml(AXES[shift.abstract.supportedAxis].label)}. The report still treats this as evidence because it shows the principle survived a practical frame.</p>
+    </article>
+  `;
+}
+
+function renderCostSignal(record) {
+  return `
+    <article class="pressure-item">
+      <p class="role-label">Explicit cost</p>
+      <h4>${escapeHtml(record.question.primary_subtype)}</h4>
+      <p>When the prompt named a cost, your ${escapeHtml(answerLabel(record.answerValue).toLowerCase())} answer moved ${escapeHtml(recordDirection(record))}.</p>
+    </article>
+  `;
+}
+
+function renderDomainCard(domain, overallAxis) {
+  const [top, middle, bottom] = domain.ranking;
+  const contrast = top.axis === overallAxis
+    ? "Matches the overall lead."
+    : `Contrasts with the overall ${AXES[overallAxis].label}-first result.`;
+  return `
+    <article class="domain-card">
+      <p class="role-label">${escapeHtml(domain.label)}</p>
+      <h4>${escapeHtml(AXES[top.axis].label)} leads <span>${formatPercent(domain.weights[top.axis])}</span></h4>
+      <p>${escapeHtml(contrast)} ${escapeHtml(AXES[bottom.axis].label)} is least protected here at ${formatPercent(domain.weights[bottom.axis])}.</p>
+      <small>${domain.count} answered; next is ${escapeHtml(AXES[middle.axis].label)} at ${formatPercent(domain.weights[middle.axis])}.</small>
+    </article>
+  `;
+}
+
+function renderIdeologyNeighbor(item) {
+  return `
+    <article>
+      <h4>${escapeHtml(item.point.label)}</h4>
+      <p>${escapeHtml(item.point.text)}</p>
+    </article>
+  `;
+}
+
+function renderTechnicalDetails(result, analysis) {
+  return `
+    <details class="technical-details">
+      <summary>Seed, raw scores, scoring details, and methodology</summary>
+      <dl class="result-facts">
+        <dt>Seed</dt>
+        <dd>${escapeHtml(state.seed)}</dd>
+        <dt>Answered</dt>
+        <dd>${result.answered} of ${state.questions.length}</dd>
+        <dt>Score order</dt>
+        <dd>${escapeHtml(analysis.orderLine)}</dd>
+        ${DISPLAY_ORDER.map((axis) => `
+          <dt>${escapeHtml(AXES[axis].label)} raw</dt>
+          <dd>${formatRawScore(result.raw[axis])}</dd>
+        `).join("")}
+      </dl>
+      <p>Each answer multiplies the question vector by the answer value from -2 to +2. Vectors are stored as [Equality, Stability, Freedom], then normalized into the displayed triangle percentages.</p>
+      <p>Pair analysis groups answered questions by <code>pair_id</code>; domain analysis uses <code>primary_subtype</code>, <code>meta_category</code>, and prompt text.</p>
+    </details>
+  `;
+}
+
+function answeredQuestionRecords() {
+  return state.questions
+    .map((question) => {
+      const answerValue = state.answers[String(question.id)];
+      if (!Number.isFinite(answerValue)) return null;
+      const contributions = answerContributions(question, answerValue);
+      const ranking = contributionRanking(contributions);
+      const supportedAxis = answerValue === 0 ? null : ranking[0].axis;
+      const sacrificedAxis = answerValue === 0 ? null : ranking[ranking.length - 1].axis;
+      return {
+        question,
+        answerValue,
+        contributions,
+        ranking,
+        supportedAxis,
+        sacrificedAxis,
+        domainId: questionDomain(question),
+        strength: ranking[0].value - ranking[ranking.length - 1].value
+      };
+    })
+    .filter(Boolean);
+}
+
+function answerContributions(question, answerValue) {
+  return VECTOR_ORDER.reduce((scores, axis, index) => {
+    scores[axis] = Number(question.vector[index] || 0) * answerValue;
+    return scores;
+  }, { freedom: 0, equality: 0, stability: 0 });
+}
+
+function contributionRanking(contributions) {
+  return DISPLAY_ORDER
+    .map((axis) => ({ axis, value: contributions[axis] || 0 }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function buildDomainStats(records) {
+  return RESULT_DOMAINS.map((domain) => {
+    const domainRecords = records.filter((record) => record.domainId === domain.id);
+    const raw = sumContributions(domainRecords);
+    const weights = normalizeRawScores(raw, domainRecords.length);
+    return {
+      id: domain.id,
+      label: domain.label,
+      count: domainRecords.length,
+      records: domainRecords,
+      raw,
+      weights,
+      ranking: DISPLAY_ORDER
+        .map((axis) => ({ axis, value: weights[axis] }))
+        .sort((a, b) => b.value - a.value)
+    };
+  }).filter((domain) => domain.count > 0);
+}
+
+function buildPairShifts(records) {
+  const groups = records.reduce((collection, record) => {
+    const key = record.question.pair_id || `question_${record.question.id}`;
+    if (!collection.has(key)) collection.set(key, []);
+    collection.get(key).push(record);
+    return collection;
+  }, new Map());
+
+  return Array.from(groups.entries()).map(([pairId, group]) => {
+    const abstract = group.find((record) => record.question.meta_category === "Abstract Principle" && record.supportedAxis);
+    const applied = group.filter((record) => record !== abstract && record.supportedAxis);
+    if (!abstract || !applied.length) return null;
+    const bestApplied = applied
+      .map((record) => ({
+        record,
+        changed: record.supportedAxis !== abstract.supportedAxis,
+        distance: contributionDistance(abstract.contributions, record.contributions)
+      }))
+      .sort((a, b) => Number(b.changed) - Number(a.changed) || b.distance - a.distance || b.record.strength - a.record.strength)[0];
+    return {
+      pairId,
+      abstract,
+      applied: bestApplied.record,
+      changed: bestApplied.changed,
+      distance: bestApplied.distance
+    };
+  }).filter(Boolean).sort((a, b) => Number(b.changed) - Number(a.changed) || b.distance - a.distance);
+}
+
+function buildInternalTension(firstAxis, secondAxis, domains, changedPairShifts, costSignals) {
+  const changed = changedPairShifts[0];
+  if (changed) {
+    return {
+      title: `${AXES[changed.abstract.supportedAxis].label} principle, ${AXES[changed.applied.supportedAxis].label} case`,
+      text: `The clearest tension is ${formatPairId(changed.pairId)}: your abstract answer protected ${AXES[changed.abstract.supportedAxis].label}, but the applied question protected ${AXES[changed.applied.supportedAxis].label}. That makes the boundary between principle and enforcement politically important for you.`
+    };
+  }
+
+  const contrast = firstDomainContrast(domains);
+  if (contrast) {
+    return {
+      title: `${contrast.a.label} versus ${contrast.b.label}`,
+      text: `Your answers lead with ${AXES[contrast.a.ranking[0].axis].label} in ${contrast.a.label.toLowerCase()}, but with ${AXES[contrast.b.ranking[0].axis].label} in ${contrast.b.label.toLowerCase()}. Mixed cases between those domains are where your own rules will be hardest to apply.`
+    };
+  }
+
+  const cost = costSignals.find((record) => record.supportedAxis !== firstAxis);
+  if (cost) {
+    return {
+      title: `${AXES[firstAxis].label} checked by explicit costs`,
+      text: `The cost-framed ${cost.question.primary_subtype} prompt moved ${recordDirection(cost)}, even though your overall result begins with ${AXES[firstAxis].label}. Costs can therefore redirect your first instinct rather than merely soften it.`
+    };
+  }
+
+  return {
+    title: `${AXES[firstAxis].label} with ${AXES[secondAxis].label} as a check`,
+    text: `No answered pair showed a clean reversal, so the main tension is between your first two virtues: how much ${AXES[secondAxis].label} must restrain ${AXES[firstAxis].label} before the restraint becomes the actual rule.`
+  };
+}
+
+function buildBlindSpot(leastAxis, evidence, domains) {
+  const record = evidence.negative[0];
+  const domain = record ? domainLabel(record.domainId).toLowerCase() : "the answered set";
+  const subtype = record ? `, especially ${record.question.primary_subtype}` : "";
+  return `${AXES[leastAxis].label} receives the least protection in this coordinate. In your answer pattern that weakness appears most in ${domain}${subtype}. The risk is not that ${AXES[leastAxis].label} is false, but that its warning arrives too late: ${AXES[leastAxis].blindSpot}`;
+}
+
+function nearestLayerPoints(layerId, weights, limit) {
+  const layer = LAYERS[layerId];
+  if (!layer) return [];
+  return layer.points
+    .map((point) => ({
+      point,
+      distance: DISPLAY_ORDER.reduce((sum, axis) => sum + Math.pow((weights[axis] || 0) - (point.weights[axis] || 0), 2), 0)
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit);
+}
+
+function firstDomainContrast(domains) {
+  for (let firstIndex = 0; firstIndex < domains.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < domains.length; secondIndex += 1) {
+      if (domains[firstIndex].ranking[0].axis !== domains[secondIndex].ranking[0].axis) {
+        return { a: domains[firstIndex], b: domains[secondIndex] };
+      }
+    }
+  }
+  return null;
+}
+
+function sumContributions(records) {
+  return records.reduce((scores, record) => {
+    DISPLAY_ORDER.forEach((axis) => {
+      scores[axis] += record.contributions[axis] || 0;
+    });
+    return scores;
+  }, { freedom: 0, equality: 0, stability: 0 });
+}
+
+function contributionDistance(a, b) {
+  return DISPLAY_ORDER.reduce((sum, axis) => sum + Math.abs((a[axis] || 0) - (b[axis] || 0)), 0);
+}
+
+function questionDomain(question) {
+  const haystack = [
+    question.pair_id,
+    question.primary_subtype,
+    question.meta_category,
+    question.text
+  ].join(" ").toLowerCase();
+  const scored = RESULT_DOMAINS.map((domain, index) => ({
+    domain,
+    index,
+    score: domain.keywords.reduce((sum, keyword) => sum + (haystack.includes(keyword) ? 1 : 0), 0)
+  })).sort((a, b) => b.score - a.score || a.index - b.index);
+  return scored[0]?.score > 0 ? scored[0].domain.id : "institutions";
+}
+
+function domainLabel(domainId) {
+  return RESULT_DOMAINS.find((domain) => domain.id === domainId)?.label || "Institutions and order";
+}
+
+function recordDirection(record) {
+  if (!record.supportedAxis || !record.sacrificedAxis) return "stayed neutral";
+  return `toward ${AXES[record.supportedAxis].label} over ${AXES[record.sacrificedAxis].label}`;
+}
+
+function answerLabel(value) {
+  return ANSWER_VALUES.find((answer) => answer.value === value)?.label || "Answered";
+}
+
+function formatPairId(pairId) {
+  return String(pairId || "paired prompt")
+    .replace(/_\d+$/g, "")
+    .replace(/_/g, " ");
+}
+
+function formatRawScore(value) {
+  return Number(value || 0).toFixed(2).replace(/\.00$/g, "");
+}
+
+function countBy(items, getKey) {
+  return items.reduce((counts, item) => {
+    const key = getKey(item);
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function formatPercent(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function resultIntro(result, name, firstAxis, secondAxis, thirdAxis) {
+  if (result.isBalanced) {
+    return `${name} means your answers do not let any single pole dominate the others. You are closest to the center of the triangle: liberty, standing, and social order all retain moral weight, even when the quiz pushes them into conflict.`;
+  }
+
+  return `${name} means your answers begin with ${AXES[firstAxis].label}, borrow from ${AXES[secondAxis].label}, and most readily sacrifice ${AXES[thirdAxis].label}. In plain terms, your political instinct is not a team label. It is a priority order under pressure.`;
+}
+
+function balancedInstinct() {
+  return "Your first political reflex is balance rather than conquest by one pole. You tend to see Freedom, Equality, and Stability as mutually necessary checks: a society needs individual agency, equal moral standing, and enough order to endure.";
+}
+
+function axisWarning(axis, targetAxis) {
+  const warnings = {
+    freedom: {
+      equality: "do not sacrifice the person to make everyone the same.",
+      stability: "do not sacrifice the person to preserve order."
+    },
+    equality: {
+      freedom: "formal freedom can abandon the weak to the strong.",
+      stability: "order can preserve unjust hierarchy and call it continuity."
+    },
+    stability: {
+      freedom: "unchecked individualism can dissolve the common world.",
+      equality: "compassion can weaken excellence, hierarchy, discipline, and inherited structure."
+    }
+  };
+  return warnings[axis]?.[targetAxis] || RESULT_AXIS_DETAILS[axis].fear;
+}
+
+function axisModeration(axis, dominantAxis) {
+  const details = RESULT_AXIS_DETAILS[axis];
+  return `${AXES[axis].label} does not lead your result, but it still restrains ${AXES[dominantAxis].label}. It asks whether your dominant instinct can survive contact with ${details.subject}.`;
 }
 
 function renderLayer(view, selectedId) {
@@ -493,23 +2016,9 @@ function renderTriangle(layer) {
   ` : "";
 
   els.triangleCanvas.innerHTML = `
+    <canvas class="tri-gradient-canvas" width="${width}" height="${height}" data-triangle-gradient aria-hidden="true"></canvas>
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${layer.title}">
       <defs>
-        <radialGradient id="washEquality" cx="${verticesByAxis.equality.x}" cy="${verticesByAxis.equality.y}" r="520" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="${AXES.equality.color}" stop-opacity="0.92"></stop>
-          <stop offset="48%" stop-color="${AXES.equality.color}" stop-opacity="0.26"></stop>
-          <stop offset="100%" stop-color="${AXES.equality.color}" stop-opacity="0"></stop>
-        </radialGradient>
-        <radialGradient id="washFreedom" cx="${verticesByAxis.freedom.x}" cy="${verticesByAxis.freedom.y}" r="520" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="${AXES.freedom.color}" stop-opacity="0.88"></stop>
-          <stop offset="48%" stop-color="${AXES.freedom.color}" stop-opacity="0.26"></stop>
-          <stop offset="100%" stop-color="${AXES.freedom.color}" stop-opacity="0"></stop>
-        </radialGradient>
-        <radialGradient id="washStability" cx="${verticesByAxis.stability.x}" cy="${verticesByAxis.stability.y}" r="520" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="${AXES.stability.color}" stop-opacity="0.9"></stop>
-          <stop offset="48%" stop-color="${AXES.stability.color}" stop-opacity="0.28"></stop>
-          <stop offset="100%" stop-color="${AXES.stability.color}" stop-opacity="0"></stop>
-        </radialGradient>
         <linearGradient id="edgeEqualityFreedom" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="${AXES.equality.color}"></stop>
           <stop offset="100%" stop-color="${AXES.freedom.color}"></stop>
@@ -538,9 +2047,6 @@ function renderTriangle(layer) {
         </filter>
       </defs>
       <rect width="${width}" height="${height}" fill="transparent"></rect>
-      <polygon class="tri-wash tri-wash-equality" points="${pointsAttr(vertices)}" fill="url(#washEquality)"></polygon>
-      <polygon class="tri-wash tri-wash-freedom" points="${pointsAttr(vertices)}" fill="url(#washFreedom)"></polygon>
-      <polygon class="tri-wash tri-wash-stability" points="${pointsAttr(vertices)}" fill="url(#washStability)"></polygon>
       ${buildGridLines()}
       <line class="tri-edge" x1="${verticesByAxis.equality.x}" y1="${verticesByAxis.equality.y}" x2="${verticesByAxis.freedom.x}" y2="${verticesByAxis.freedom.y}" stroke="url(#edgeEqualityFreedom)"></line>
       <line class="tri-edge" x1="${verticesByAxis.freedom.x}" y1="${verticesByAxis.freedom.y}" x2="${verticesByAxis.stability.x}" y2="${verticesByAxis.stability.y}" stroke="url(#edgeFreedomStability)"></line>
@@ -552,6 +2058,8 @@ function renderTriangle(layer) {
     </svg>
   `;
 
+  drawTriangleGradient(els.triangleCanvas.querySelector("[data-triangle-gradient]"), verticesByAxis);
+
   els.triangleCanvas.querySelectorAll(".tri-node").forEach((node) => {
     const id = node.dataset.point;
     node.addEventListener("click", () => renderLayer(state.activeView, id));
@@ -562,6 +2070,87 @@ function renderTriangle(layer) {
       }
     });
   });
+}
+
+function drawTriangleGradient(canvas, verticesByAxis) {
+  if (!canvas?.getContext) return;
+  const width = 620;
+  const height = 620;
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+
+  const ctx = canvas.getContext("2d");
+  const image = ctx.createImageData(canvas.width, canvas.height);
+  const vertices = {
+    equality: verticesByAxis.equality,
+    freedom: verticesByAxis.freedom,
+    stability: verticesByAxis.stability
+  };
+  const denominator =
+    (vertices.freedom.y - vertices.stability.y) * (vertices.equality.x - vertices.stability.x) +
+    (vertices.stability.x - vertices.freedom.x) * (vertices.equality.y - vertices.stability.y);
+
+  for (let pixelY = 0; pixelY < canvas.height; pixelY += 1) {
+    for (let pixelX = 0; pixelX < canvas.width; pixelX += 1) {
+      const x = (pixelX + 0.5) / scale;
+      const y = (pixelY + 0.5) / scale;
+      const equality =
+        ((vertices.freedom.y - vertices.stability.y) * (x - vertices.stability.x) +
+          (vertices.stability.x - vertices.freedom.x) * (y - vertices.stability.y)) / denominator;
+      const freedom =
+        ((vertices.stability.y - vertices.equality.y) * (x - vertices.stability.x) +
+          (vertices.equality.x - vertices.stability.x) * (y - vertices.stability.y)) / denominator;
+      const stability = 1 - equality - freedom;
+      const index = (pixelY * canvas.width + pixelX) * 4;
+
+      if (equality < -0.002 || freedom < -0.002 || stability < -0.002) {
+        image.data[index + 3] = 0;
+        continue;
+      }
+
+      const weights = { equality, freedom, stability };
+      const strengths = DISPLAY_ORDER.reduce((collection, axis) => {
+        collection[axis] = Math.pow(Math.max(0, weights[axis]), 0.72) * 0.96;
+        return collection;
+      }, {});
+      let red = screenColorChannel(0, strengths);
+      let green = screenColorChannel(1, strengths);
+      let blue = screenColorChannel(2, strengths);
+      const centerLift = Math.min(equality, freedom, stability) * 3;
+      const saturation = 1.12 + (1 - centerLift) * 0.16;
+      const light = 1.04 + centerLift * 0.15;
+      const enhanced = enhanceColor(red, green, blue, saturation, light);
+
+      image.data[index] = enhanced.red;
+      image.data[index + 1] = enhanced.green;
+      image.data[index + 2] = enhanced.blue;
+      image.data[index + 3] = 246;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+}
+
+function screenColorChannel(channel, strengths) {
+  const remaining = DISPLAY_ORDER.reduce((product, axis) => {
+    const color = TRIANGLE_WASH_COLORS[axis][channel] / 255;
+    return product * (1 - color * strengths[axis]);
+  }, 1);
+  return (1 - remaining) * 255;
+}
+
+function enhanceColor(red, green, blue, saturation, light) {
+  const average = (red + green + blue) / 3;
+  return {
+    red: clampColor((average + (red - average) * saturation) * light),
+    green: clampColor((average + (green - average) * saturation) * light),
+    blue: clampColor((average + (blue - average) * saturation) * light)
+  };
+}
+
+function clampColor(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
 }
 
 function renderSvgNode(point) {
@@ -606,31 +2195,52 @@ function splitLabel(label) {
   ].filter(Boolean);
 }
 
-function renderAxisLabels() {
+function renderAxisLabels(axes) {
   return DISPLAY_ORDER.map((axis) => {
-    const data = AXES[axis];
-    const v = data.vertex;
+    const data = getAxisDisplay(axis, axes);
+    const v = AXES[axis].vertex;
     const offsets = {
-      freedom: { x: 42, y: -28, anchor: "end" },
-      equality: { x: -54, y: -14, anchor: "start" },
+      freedom: { x: 42, y: -56, anchor: "end" },
+      equality: { x: -84, y: -72, anchor: "start" },
       stability: { x: 42, y: 42, anchor: "end" }
     }[axis];
     const noteOffsets = {
-      freedom: { x: 42, y: -8, anchor: "end" },
-      equality: { x: -54, y: 6, anchor: "start" },
+      freedom: { x: 42, y: -36, anchor: "end" },
+      equality: { x: -84, y: -50, anchor: "start" },
       stability: { x: 42, y: 62, anchor: "end" }
     }[axis];
+    const labelLines = axisTextLines(data.label, 15, 2);
+    const noteLines = axisNoteTextLines(data.note, axis);
+    const labelY = v.y + offsets.y - (axis === "stability" ? (labelLines.length - 1) * 18 : 0);
+    const noteY = Math.max(v.y + noteOffsets.y, labelY + labelLines.length * 24);
 
     return `
       <g>
         <g class="tri-axis-node" transform="translate(${v.x} ${v.y})">
           ${renderDot(data.color)}
         </g>
-        <text class="tri-axis-label tri-axis-${axis}" x="${v.x + offsets.x}" y="${v.y + offsets.y}" text-anchor="${offsets.anchor}">${data.label}</text>
-        <text class="tri-axis-note" x="${v.x + noteOffsets.x}" y="${v.y + noteOffsets.y}" text-anchor="${noteOffsets.anchor}">${data.note}</text>
+        ${renderSvgAxisTextLines(labelLines, `tri-axis-label tri-axis-${axis}`, v.x + offsets.x, labelY, offsets.anchor, 30)}
+        ${renderSvgAxisTextLines(noteLines, "tri-axis-note", v.x + noteOffsets.x, noteY, noteOffsets.anchor, 17)}
       </g>
     `;
   }).join("");
+}
+
+function axisTextLines(text, maxChars, maxLines) {
+  return clampTextLines(wrapTextByChars(text, maxChars), maxLines, maxChars);
+}
+
+function axisNoteTextLines(text, axis) {
+  if (axis === "freedom" || axis === "stability") return [String(text || "")];
+  return axisTextLines(text, 22, 2);
+}
+
+function renderSvgAxisTextLines(lines, className, x, y, anchor, lineHeight) {
+  return `
+    <text class="${className}" x="${x}" y="${y}" text-anchor="${anchor}">
+      ${lines.map((line, index) => `<tspan x="${x}" dy="${index ? lineHeight : 0}">${escapeHtml(line)}</tspan>`).join("")}
+    </text>
+  `;
 }
 
 function renderPointList(layer) {
@@ -656,14 +2266,10 @@ function renderSelectedPoint(point) {
   }
 
   if (panel) panel.hidden = false;
-  const weights = DISPLAY_ORDER
-    .map((axis) => `${AXES[axis].short} ${Math.round((point.weights[axis] || 0) * 100)}%`)
-    .join(" / ");
   els.selectedPoint.innerHTML = `
     <p class="selected-label">Selected point</p>
     <h4>${escapeHtml(point.label)}</h4>
     <p>${escapeHtml(point.text)}</p>
-    <p class="mix-line">${weights}</p>
   `;
   renderSelectionConnector(point);
   window.requestAnimationFrame(() => renderSelectionConnector(point));
