@@ -125,10 +125,24 @@ const LAYERS = {
   }
 };
 
-const RESULT_NAMES = {
+const RESULT_BLEND_NAMES = {
   freedom: { equality: "Liberal Egalitarian", stability: "Ordered Liberty" },
   equality: { freedom: "Emancipatory Egalitarian", stability: "Institutional Egalitarian" },
   stability: { freedom: "Conservative Liberal", equality: "Communitarian Order" }
+};
+
+const RESULT_POLE_NAMES = {
+  freedom: "Freedom Maximalist",
+  equality: "Equality Maximalist",
+  stability: "Stability Maximalist"
+};
+
+const RESULT_THRESHOLDS = {
+  balancedSpread: 0.09,
+  poleDominant: 0.72,
+  poleSecondMax: 0.2,
+  substantialSecond: 0.25,
+  dominant: 0.58
 };
 
 const RESULT_AXIS_DETAILS = {
@@ -137,7 +151,7 @@ const RESULT_AXIS_DETAILS = {
     subject: "the individual as chooser, owner, speaker, trader, dissenter, and bearer of rights",
     socialLogic: "voluntary exchange: consent, contract, property, competition, markets, and rule of law",
     fear: "being absorbed into a collective purpose that treats personal agency as expendable",
-    first: "Your first political reflex is to keep the person from becoming a tool of society. When a question forces a tradeoff, you usually begin by asking whether people retain exit, ownership, speech, association, refusal, and room for self-direction.",
+    first: "Your first political reflex is to keep the person from becoming a tool of society. Your answers usually begin from exit, ownership, speech, association, refusal, and room for self-direction.",
     second: "As a secondary virtue, Freedom still matters, but it functions more as a limit on how far care or order may go. You may accept social provision or hierarchy, but you resist arrangements that remove choice entirely.",
     sacrificed: "When Freedom is your sacrificed pole, your answers show a willingness to limit exit, private choice, market freedom, or individual refusal when another civic good seems more urgent.",
     compass: "You read politics from the individual outward: society is legitimate when people can act, dissent, trade, refuse, and leave.",
@@ -159,7 +173,7 @@ const RESULT_AXIS_DETAILS = {
     subject: "society as a collective body with memory, institutions, borders, offices, duties, and long-term survival needs",
     socialLogic: "command and continuity: hierarchy, office, law, bureaucracy, military discipline, borders, rank, and inherited structure",
     fear: "collapse, chaos, rootlessness, decadence, civil fragmentation, and loss of the ability to act as one people",
-    first: "Your first political reflex is to protect the order that lets a society survive across time. When a tradeoff appears, you usually ask whether institutions, continuity, duty, borders, social trust, and collective capacity will endure.",
+    first: "Your first political reflex is to protect the order that lets a society survive across time. Your answers usually start with institutions, continuity, duty, borders, social trust, and collective capacity.",
     second: "As a secondary virtue, Stability gives your politics a concern for consequences and durability. You may support liberty or equality, but you prefer reforms that preserve institutional memory and social coherence.",
     sacrificed: "When Stability is your sacrificed pole, your answers show a willingness to disrupt order, weaken inherited authority, or accept institutional instability when Freedom or Equality seems morally necessary.",
     compass: "You read politics historically: a society is not only a set of individuals or equal claimants, but a body that must coordinate, remember, and survive.",
@@ -1369,13 +1383,13 @@ function moveQuestion(delta) {
 }
 
 function renderNoResult() {
-  if (els.resultSummary) els.resultSummary.textContent = "No result state was found. Start the quiz to generate a shareable result.";
+  if (els.resultSummary) els.resultSummary.textContent = "No completed answers were found. Start the quiz to generate your report.";
   if (els.resultOverview) els.resultOverview.innerHTML = "";
   if (els.resultBars) els.resultBars.innerHTML = "";
   if (els.resultReading) {
     els.resultReading.innerHTML = `
       <h2>No result yet</h2>
-      <p>The results page expects a compact result URL from the quiz.</p>
+      <p>This page needs completed quiz answers before it can read your Political Prism position.</p>
       <a class="command primary" href="quiz.html">Start quiz</a>
     `;
   }
@@ -1406,7 +1420,8 @@ function renderResults(result) {
 function buildResultAnalysis(result) {
   const [first, second, third] = result.ranking;
   const records = answeredQuestionRecords();
-  const name = resultName(result);
+  const classification = classifyResult(result);
+  const name = classification.name;
   const domains = buildDomainStats(records);
   const pairShifts = buildPairShifts(records);
   const changedPairShifts = pairShifts.filter((shift) => shift.changed);
@@ -1434,17 +1449,21 @@ function buildResultAnalysis(result) {
     return collection;
   }, {});
   const nearbyIdeologies = nearestLayerPoints("ideologies", result.weights, 4);
+  const closestIdeology = nearbyIdeologies[0] || null;
   const tension = buildInternalTension(first.axis, second.axis, domains, changedPairShifts, costSignals);
-  const blindSpot = buildBlindSpot(third.axis, axisEvidence[third.axis], domains);
+  const blindSpot = buildBlindSpot(third.axis, third.value, axisEvidence[third.axis]);
   const orderLine = result.ranking
     .map((item) => `${AXES[item.axis].label} ${formatPercent(result.weights[item.axis])}`)
     .join(" > ");
-  const summary = result.isBalanced
-    ? `${name}: ${orderLine}. Your answers keep all three virtues in play, with ${AXES[first.axis].label} only narrowly ahead.`
-    : `${name}: ${orderLine}. The report reads this as ${AXES[first.axis].label} first, ${AXES[second.axis].label} as the main restraint, and ${AXES[third.axis].label} least protected.`;
+  const summary = [
+    classification.summary,
+    `Coordinate: ${formatCoordinate(result.weights)}.`,
+    closestIdeology ? `Closest ideology: ${closestIdeology.point.label}.` : ""
+  ].filter(Boolean).join(" ");
 
   return {
     name,
+    classification,
     records,
     domains,
     pairShifts,
@@ -1453,34 +1472,79 @@ function buildResultAnalysis(result) {
     strongestSignals,
     axisEvidence,
     nearbyIdeologies,
+    closestIdeology,
     tension,
     blindSpot,
     orderLine,
     summary,
     roles: [
-      { label: "Dominant virtue", axis: first.axis, value: first.value },
-      { label: "Secondary restraint", axis: second.axis, value: second.value },
-      { label: "Least-protected", axis: third.axis, value: third.value }
+      { label: "Dominant", axis: first.axis, value: first.value },
+      { label: "Secondary", axis: second.axis, value: second.value },
+      { label: "Sacrificed", axis: third.axis, value: third.value }
     ]
   };
 }
 
-function resultName(result) {
-  const [first, second] = result.ranking;
-  return result.isBalanced
-    ? "Triangular Balancer"
-    : (RESULT_NAMES[first.axis]?.[second.axis] || `${AXES[first.axis].label} First`);
+function classifyResult(result) {
+  const [first, second, third] = result.ranking;
+  const firstLabel = AXES[first.axis].label;
+  const secondLabel = AXES[second.axis].label;
+  const thirdLabel = AXES[third.axis].label;
+
+  if (result.isBalanced) {
+    return {
+      name: "Triangular Balancer",
+      family: "balanced",
+      mode: "center",
+      summary: "Verdict: no pole wins clearly. The answers form a centered pattern rather than a hard commitment."
+    };
+  }
+
+  if (first.value >= RESULT_THRESHOLDS.poleDominant && second.value < RESULT_THRESHOLDS.poleSecondMax) {
+    return {
+      name: RESULT_POLE_NAMES[first.axis],
+      family: first.axis,
+      mode: "pole-dominant",
+      summary: `Verdict: ${firstLabel} dominates. ${secondLabel} is marginal, and ${thirdLabel} is sacrificed.`
+    };
+  }
+
+  if (second.value >= RESULT_THRESHOLDS.substantialSecond) {
+    const name = RESULT_BLEND_NAMES[first.axis]?.[second.axis] || `${firstLabel}-${secondLabel} Blend`;
+    return {
+      name,
+      family: `${first.axis}-${second.axis}`,
+      mode: third.value <= 0.08 ? "edge-blend" : "two-axis-blend",
+      summary: `Verdict: ${firstLabel} leads with a real ${secondLabel} counterweight. ${thirdLabel} is the sacrificed pole.`
+    };
+  }
+
+  if (first.value >= RESULT_THRESHOLDS.dominant) {
+    return {
+      name: `${firstLabel} Dominant`,
+      family: first.axis,
+      mode: "axis-dominant",
+      summary: `Verdict: ${firstLabel} controls the pattern, but not cleanly enough to be maximalist. ${thirdLabel} is the weak point.`
+    };
+  }
+
+  return {
+    name: `${firstLabel}-Leaning Mixed`,
+    family: `${first.axis}-mixed`,
+    mode: "mixed",
+    summary: `Verdict: ${firstLabel} leads, but the result is mixed rather than settled. ${secondLabel} keeps it from becoming one-pole.`
+  };
 }
 
 function renderResultOverview(result, analysis) {
   return `
     <article class="result-name-card">
-      <p class="kicker">Result name</p>
+      <p class="kicker">Verdict</p>
       <h2>${escapeHtml(analysis.name)}</h2>
       <p>${escapeHtml(resultOpeningSentence(result, analysis))}</p>
     </article>
     <article class="result-score-card">
-      <p class="kicker">Score order</p>
+      <p class="kicker">Coordinate</p>
       <ol class="result-score-order">
         ${analysis.roles.map((role, index) => `
           <li>
@@ -1498,18 +1562,14 @@ function renderResultOverview(result, analysis) {
 }
 
 function resultOpeningSentence(result, analysis) {
-  const [dominant, secondary, least] = analysis.roles;
-  if (result.isBalanced) {
-    return `The coordinate is close to the center, so the order matters less than the refusal to let one virtue consume the others. ${AXES[dominant.axis].label} still edges ahead in the answered tradeoffs.`;
-  }
-  return `Your answers most often protect ${AXES[dominant.axis].label}, use ${AXES[secondary.axis].label} as the nearest check on that instinct, and leave ${AXES[least.axis].label} with the thinnest protection.`;
+  return analysis.classification.summary;
 }
 
 function renderEvidencePanel(analysis) {
   return `
-    <p class="kicker">Answer evidence</p>
-    <h2>What shaped this</h2>
-    <p class="score-note">Built from ${analysis.records.length} answered questions, including vectors, pair IDs, subtypes, and meta categories.</p>
+    <p class="kicker">Evidence</p>
+    <h2>What moved the result</h2>
+    <p class="score-note">${analysis.records.length} answered prompts. These are the strongest pushes in the pattern.</p>
     <div class="evidence-block">
       <h3>Strongest signals</h3>
       <ul class="evidence-list">
@@ -1545,7 +1605,7 @@ function renderMetaCounts(records) {
 function renderResultReading(result, analysis) {
   return `
     <div class="report-heading">
-      <p class="kicker">Answer-derived interpretation</p>
+      <p class="kicker">Verdict</p>
       <h2>${escapeHtml(analysis.name)}</h2>
       <p class="report-lead">${escapeHtml(analysis.summary)}</p>
     </div>
@@ -1553,57 +1613,54 @@ function renderResultReading(result, analysis) {
     <section class="report-section report-section-marked report-section-protected">
       <div class="report-section-heading">
         <span class="report-section-index" aria-hidden="true">01</span>
-        <h3>Protected, restrained, exposed</h3>
+        <h3>Coordinate</h3>
       </div>
       <div class="report-roles">
         ${analysis.roles.map((role) => renderRoleCard(role, result, analysis)).join("")}
       </div>
     </section>
 
-    <section class="report-section report-section-marked report-section-principles">
+    <section class="report-section report-section-marked report-section-ideologies">
       <div class="report-section-heading">
         <span class="report-section-index" aria-hidden="true">02</span>
-        <h3>Principles under pressure</h3>
+        <h3>Closest ideology</h3>
+      </div>
+      ${renderClosestIdeology(analysis)}
+    </section>
+
+    <section class="report-section report-section-marked report-section-tensions">
+      <div class="report-section-heading">
+        <span class="report-section-index" aria-hidden="true">03</span>
+        <h3>Contradictions</h3>
       </div>
       ${renderPrinciplePressure(analysis)}
     </section>
 
     <section class="report-section report-section-marked report-section-domains">
       <div class="report-section-heading">
-        <span class="report-section-index" aria-hidden="true">03</span>
-        <h3>Domain differences</h3>
+        <span class="report-section-index" aria-hidden="true">04</span>
+        <h3>Where it changes</h3>
       </div>
       <div class="domain-grid">
         ${analysis.domains.map((domain) => renderDomainCard(domain, analysis.roles[0].axis)).join("")}
       </div>
     </section>
 
-    <section class="report-section report-section-marked report-section-ideologies">
-      <div class="report-section-heading">
-        <span class="report-section-index" aria-hidden="true">04</span>
-        <h3>Nearby ideological traditions</h3>
-      </div>
-      <p class="section-note">These are nearby reference traditions, not an absolute ideology label.</p>
-      <div class="ideology-neighbors">
-        ${analysis.nearbyIdeologies.map(renderIdeologyNeighbor).join("")}
-      </div>
-    </section>
-
     <section class="report-section report-section-marked report-section-tensions">
       <div class="report-section-heading">
         <span class="report-section-index" aria-hidden="true">05</span>
-        <h3>Pressure points</h3>
+        <h3>Sacrificed pole</h3>
       </div>
       <div class="insight-pair">
         <article>
-          <p class="role-label">Internal tension</p>
-          <h3>${escapeHtml(analysis.tension.title)}</h3>
-          <p>${escapeHtml(analysis.tension.text)}</p>
+          <p class="role-label">Sacrificed</p>
+          <h3>${escapeHtml(AXES[analysis.roles[2].axis].label)} ${formatPercent(analysis.roles[2].value)}</h3>
+          <p>${escapeHtml(analysis.blindSpot)}</p>
         </article>
         <article>
-          <p class="role-label">Likely blind spot</p>
-          <h3>${escapeHtml(AXES[analysis.roles[2].axis].label)} underprotection</h3>
-          <p>${escapeHtml(analysis.blindSpot)}</p>
+          <p class="role-label">Bottom line</p>
+          <h3>${escapeHtml(analysis.classification.mode)}</h3>
+          <p>${escapeHtml(analysis.classification.summary)}</p>
         </article>
       </div>
     </section>
@@ -1614,16 +1671,21 @@ function renderResultReading(result, analysis) {
 
 function renderRoleCard(role, result, analysis) {
   const evidence = analysis.axisEvidence[role.axis];
-  const record = role.label === "Least-protected"
+  const record = role.label === "Sacrificed"
     ? evidence.negative[0]
     : evidence.positive[0];
   const evidenceText = record
     ? `${record.question.primary_subtype} (${record.question.meta_category})`
     : "the answered set as a whole";
-  const copy = {
-    "Dominant virtue": `${AXES[role.axis].summary} This was strongest around ${evidenceText}.`,
-    "Secondary restraint": `${AXES[role.axis].label} does not lead, but it repeatedly limits how far ${AXES[analysis.roles[0].axis].label} can go. Its clearest evidence is ${evidenceText}.`,
-    "Least-protected": `${AXES[role.axis].label} is the virtue your answers most readily trade away. The clearest pressure against it appears around ${evidenceText}.`
+  const zeroed = role.value <= 0.005;
+  const copy = zeroed ? {
+    "Dominant": `Highest coordinate after scoring. Clearest evidence: ${evidenceText}.`,
+    "Secondary": `${AXES[role.axis].label} retained no coordinate after scoring. Any local support was cancelled by stronger opposing answers.`,
+    "Sacrificed": `${AXES[role.axis].label} retained no coordinate after scoring. Clearest pressure against it: ${evidenceText}.`
+  }[role.label] : {
+    "Dominant": `Highest coordinate. Clearest supporting evidence: ${evidenceText}.`,
+    "Secondary": `Present but not decisive. Clearest supporting evidence: ${evidenceText}.`,
+    "Sacrificed": `Lowest coordinate. Clearest pressure against it: ${evidenceText}.`
   }[role.label];
 
   return `
@@ -1644,7 +1706,7 @@ function renderPrinciplePressure(analysis) {
     <div class="pressure-list">
       ${shifts.map(renderPairShift).join("")}
       ${!shifts.length && stablePressure ? renderStablePairPressure(stablePressure) : ""}
-      ${!shifts.length && !stablePressure ? "<p>No answered abstract/practical pair was available to compare.</p>" : ""}
+      ${!shifts.length && !stablePressure ? "<p>No paired principle-and-case question was available to compare.</p>" : ""}
       ${costSignals.map(renderCostSignal).join("")}
     </div>
   `;
@@ -1665,17 +1727,19 @@ function renderStablePairPressure(shift) {
     <article class="pressure-item">
       <p class="role-label">${escapeHtml(formatPairId(shift.pairId))}</p>
       <h4>No reversal in the strongest paired comparison</h4>
-      <p>Your abstract answer and applied case both leaned toward ${escapeHtml(AXES[shift.abstract.supportedAxis].label)}. The report still treats this as evidence because it shows the principle survived a practical frame.</p>
+      <p>Your abstract answer and applied case both leaned toward ${escapeHtml(AXES[shift.abstract.supportedAxis].label)}. No contradiction showed up in that pair.</p>
     </article>
   `;
 }
 
 function renderCostSignal(record) {
+  const direction = recordDirection(record);
+  const movement = direction === "stayed neutral" ? "stayed neutral" : `moved ${direction}`;
   return `
     <article class="pressure-item">
       <p class="role-label">Explicit cost</p>
       <h4>${escapeHtml(record.question.primary_subtype)}</h4>
-      <p>When the prompt named a cost, your ${escapeHtml(answerLabel(record.answerValue).toLowerCase())} answer moved ${escapeHtml(recordDirection(record))}.</p>
+      <p>When the prompt named a cost, your ${escapeHtml(answerLabel(record.answerValue).toLowerCase())} answer ${escapeHtml(movement)}.</p>
     </article>
   `;
 }
@@ -1692,6 +1756,20 @@ function renderDomainCard(domain, overallAxis) {
       <p>${escapeHtml(contrast)} ${escapeHtml(AXES[bottom.axis].label)} is least protected here at ${formatPercent(domain.weights[bottom.axis])}.</p>
       <small>${domain.count} answered; next is ${escapeHtml(AXES[middle.axis].label)} at ${formatPercent(domain.weights[middle.axis])}.</small>
     </article>
+  `;
+}
+
+function renderClosestIdeology(analysis) {
+  const closest = analysis.closestIdeology;
+  if (!closest) return "<p>No ideology reference point was available.</p>";
+  return `
+    <div class="ideology-neighbors">
+      <article>
+        <p class="role-label">Closest stored reference</p>
+        <h4>${escapeHtml(closest.point.label)}</h4>
+        <p>${escapeHtml(closest.point.text)}</p>
+      </article>
+    </div>
   `;
 }
 
@@ -1713,14 +1791,14 @@ function renderTechnicalDetails(result, analysis) {
         <dd>${escapeHtml(state.seed)}</dd>
         <dt>Answered</dt>
         <dd>${result.answered} of ${state.questions.length}</dd>
-        <dt>Score order</dt>
+        <dt>Coordinate order</dt>
         <dd>${escapeHtml(analysis.orderLine)}</dd>
         ${DISPLAY_ORDER.map((axis) => `
           <dt>${escapeHtml(AXES[axis].label)} raw</dt>
           <dd>${formatRawScore(result.raw[axis])}</dd>
         `).join("")}
       </dl>
-      <p>Each answer multiplies the question vector by the answer value from -2 to +2. Vectors are stored as [Equality, Stability, Freedom], then normalized into the displayed triangle percentages.</p>
+      <p>Each answer multiplies the question vector by the answer value from -2 to +2. Vectors are stored as [Equality, Stability, Freedom]. Raw averages are shifted from the lowest axis to zero, then converted into triangle percentages with no residual floor.</p>
       <p>Pair analysis groups answered questions by <code>pair_id</code>; domain analysis uses <code>primary_subtype</code>, <code>meta_category</code>, and prompt text.</p>
     </details>
   `;
@@ -1815,7 +1893,7 @@ function buildInternalTension(firstAxis, secondAxis, domains, changedPairShifts,
   if (changed) {
     return {
       title: `${AXES[changed.abstract.supportedAxis].label} principle, ${AXES[changed.applied.supportedAxis].label} case`,
-      text: `The clearest tension is ${formatPairId(changed.pairId)}: your abstract answer protected ${AXES[changed.abstract.supportedAxis].label}, but the applied question protected ${AXES[changed.applied.supportedAxis].label}. That makes the boundary between principle and enforcement politically important for you.`
+      text: `The clearest contradiction is ${formatPairId(changed.pairId)}: the abstract answer moved toward ${AXES[changed.abstract.supportedAxis].label}, but the applied case moved toward ${AXES[changed.applied.supportedAxis].label}.`
     };
   }
 
@@ -1823,7 +1901,7 @@ function buildInternalTension(firstAxis, secondAxis, domains, changedPairShifts,
   if (contrast) {
     return {
       title: `${contrast.a.label} versus ${contrast.b.label}`,
-      text: `Your answers lead with ${AXES[contrast.a.ranking[0].axis].label} in ${contrast.a.label.toLowerCase()}, but with ${AXES[contrast.b.ranking[0].axis].label} in ${contrast.b.label.toLowerCase()}. Mixed cases between those domains are where your own rules will be hardest to apply.`
+      text: `The pattern changes by domain: ${AXES[contrast.a.ranking[0].axis].label} leads in ${contrast.a.label.toLowerCase()}, while ${AXES[contrast.b.ranking[0].axis].label} leads in ${contrast.b.label.toLowerCase()}.`
     };
   }
 
@@ -1831,21 +1909,22 @@ function buildInternalTension(firstAxis, secondAxis, domains, changedPairShifts,
   if (cost) {
     return {
       title: `${AXES[firstAxis].label} checked by explicit costs`,
-      text: `The cost-framed ${cost.question.primary_subtype} prompt moved ${recordDirection(cost)}, even though your overall result begins with ${AXES[firstAxis].label}. Costs can therefore redirect your first instinct rather than merely soften it.`
+      text: `The cost-framed ${cost.question.primary_subtype} prompt moved ${recordDirection(cost)}, against the overall ${AXES[firstAxis].label}-first verdict.`
     };
   }
 
   return {
-    title: `${AXES[firstAxis].label} with ${AXES[secondAxis].label} as a check`,
-    text: `No answered pair showed a clean reversal, so the main tension is between your first two virtues: how much ${AXES[secondAxis].label} must restrain ${AXES[firstAxis].label} before the restraint becomes the actual rule.`
+    title: `${AXES[firstAxis].label} with ${AXES[secondAxis].label} behind it`,
+    text: `No clean reversal surfaced. The main split is how much ${AXES[secondAxis].label} remains after ${AXES[firstAxis].label} sets the direction.`
   };
 }
 
-function buildBlindSpot(leastAxis, evidence, domains) {
+function buildBlindSpot(leastAxis, weight, evidence) {
   const record = evidence.negative[0];
-  const domain = record ? domainLabel(record.domainId).toLowerCase() : "the answered set";
-  const subtype = record ? `, especially ${record.question.primary_subtype}` : "";
-  return `${AXES[leastAxis].label} receives the least protection in this coordinate. In your answer pattern that weakness appears most in ${domain}${subtype}. The risk is not that ${AXES[leastAxis].label} is false, but that its warning arrives too late: ${AXES[leastAxis].blindSpot}`;
+  const source = record
+    ? `${record.question.primary_subtype} (${record.question.meta_category})`
+    : "the answered set";
+  return `${AXES[leastAxis].label} is the sacrificed pole at ${formatPercent(weight)}. The clearest evidence is ${source}.`;
 }
 
 function nearestLayerPoints(layerId, weights, limit) {
@@ -1932,6 +2011,12 @@ function countBy(items, getKey) {
 
 function formatPercent(value) {
   return `${Math.round(value * 100)}%`;
+}
+
+function formatCoordinate(weights) {
+  return DISPLAY_ORDER
+    .map((axis) => `${AXES[axis].label} ${formatPercent(weights[axis] || 0)}`)
+    .join(" / ");
 }
 
 function resultIntro(result, name, firstAxis, secondAxis, thirdAxis) {
@@ -2396,21 +2481,17 @@ function calculateResult() {
     weights,
     ranking,
     answered,
-    isBalanced: ranking[0].value - ranking[2].value < 0.09
+    isBalanced: ranking[0].value - ranking[2].value < RESULT_THRESHOLDS.balancedSpread
   };
 }
 
 function normalizeRawScores(raw, answered) {
   if (!answered) return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
   const average = DISPLAY_ORDER.map((axis) => raw[axis] / answered);
-  if (Math.max(...average.map((value) => Math.abs(value))) < 0.000001) {
-    return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
-  }
   const min = Math.min(...average);
-  const max = Math.max(...average);
-  const floor = Math.max(0.08, (max - min) * 0.16);
-  const shifted = average.map((value) => value - min + floor);
+  const shifted = average.map((value) => Math.max(0, value - min));
   const total = shifted.reduce((sum, value) => sum + value, 0);
+  if (total < 0.000001) return { freedom: 1 / 3, equality: 1 / 3, stability: 1 / 3 };
   return {
     freedom: shifted[DISPLAY_ORDER.indexOf("freedom")] / total,
     equality: shifted[DISPLAY_ORDER.indexOf("equality")] / total,
