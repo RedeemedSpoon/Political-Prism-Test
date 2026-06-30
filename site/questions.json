@@ -538,5 +538,545 @@
       0.0,
       1.0
     ]
+  },
+  {
+    "id": 46,
+    "pair_id": "ai_wealth_1",
+    "primary_subtype": "AI Redistribution Equity",
+    "meta_category": "Future Risk",
+    "text": "If advanced AI creates enormous profits by replacing human labor, a large share of those profits should be redistributed to the public.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 47,
+    "pair_id": "platform_parity_1",
+    "primary_subtype": "Institutional Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Major institutions should actively engineer demographic parity in leadership, even when this conflicts with traditional meritocratic selection.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 48,
+    "pair_id": "climate_burden_1",
+    "primary_subtype": "Climate Equity",
+    "meta_category": "Future Risk",
+    "text": "Countries and companies that benefited most from industrialization should bear most of the cost of climate adaptation for poorer populations.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 49,
+    "pair_id": "criminal_record_1",
+    "primary_subtype": "Restorative Equity",
+    "meta_category": "Mundane Enforcement",
+    "text": "After completing their sentence, former criminals should have most employment and housing discrimination against them legally prohibited.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 50,
+    "pair_id": "global_health_1",
+    "primary_subtype": "Global Equity",
+    "meta_category": "Protection vs. Market",
+    "text": "Life-saving medical patents should be overridden when poor countries cannot afford the market price.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 51,
+    "pair_id": "historic_redress_1",
+    "primary_subtype": "Historical Redress Equity",
+    "meta_category": "Historical Legitimacy",
+    "text": "The descendants of groups harmed by state-backed dispossession deserve material compensation, even if the current generation did not personally commit the harm.",
+    "vector": [
+      1.0,
+      -0.5,
+      -0.5
+    ]
+  },
+  {
+    "id": 52,
+    "pair_id": "monarchy_1",
+    "primary_subtype": "Monarchic Stability",
+    "meta_category": "Historical Legitimacy",
+    "text": "A competent hereditary monarch is preferable to a constantly shifting elected government.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 53,
+    "pair_id": "ai_license_1",
+    "primary_subtype": "AI Safety Stability",
+    "meta_category": "Future Risk",
+    "text": "Frontier AI labs should need state licenses before training systems that could destabilize labor markets, elections, or military power.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 54,
+    "pair_id": "national_service_1",
+    "primary_subtype": "Civic Discipline Stability",
+    "meta_category": "Civilizational Continuity",
+    "text": "A year of national service should be required of young adults to build discipline, shared identity, and civic loyalty.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 55,
+    "pair_id": "school_canon_1",
+    "primary_subtype": "Cultural Continuity Stability",
+    "meta_category": "Education and Culture",
+    "text": "Schools should transmit a common national canon before encouraging students to deconstruct or challenge it.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 56,
+    "pair_id": "family_norms_1",
+    "primary_subtype": "Family Stability",
+    "meta_category": "Personal Life",
+    "text": "The law should privilege stable two-parent households because family structure is too important to leave entirely to personal preference.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 57,
+    "pair_id": "emergency_powers_1",
+    "primary_subtype": "Crisis Authority Stability",
+    "meta_category": "Cost of Principle",
+    "text": "In a severe national crisis, executive power should temporarily expand even if normal civil liberties are restricted.",
+    "vector": [
+      -0.5,
+      1.0,
+      -0.5
+    ]
+  },
+  {
+    "id": 58,
+    "pair_id": "ai_open_source_1",
+    "primary_subtype": "AI Acceleration Freedom",
+    "meta_category": "Future Risk",
+    "text": "Developers should be free to release powerful AI models publicly, even if governments and large institutions warn that misuse is likely.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 59,
+    "pair_id": "exit_communities_1",
+    "primary_subtype": "Exit Freedom",
+    "meta_category": "Right to Exclude",
+    "text": "People should be free to form private towns or seasteads with their own rules, provided residents can leave and contracts are voluntary.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 60,
+    "pair_id": "medical_autonomy_1",
+    "primary_subtype": "Bodily Freedom",
+    "meta_category": "Personal Life",
+    "text": "Adults should be legally allowed to purchase experimental longevity treatments before long-term safety is proven.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 61,
+    "pair_id": "human_enhancement_1",
+    "primary_subtype": "Enhancement Freedom",
+    "meta_category": "Future Risk",
+    "text": "Adults should have the legal right to use genetic modification or neurotechnology to enhance themselves without waiting for government safety approval.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 62,
+    "pair_id": "speech_insult_1",
+    "primary_subtype": "Speech Freedom",
+    "meta_category": "Personal Life",
+    "text": "The law should protect the right to publicly insult religions, nations, and identity groups, even when the result is social unrest.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 63,
+    "pair_id": "private_security_1",
+    "primary_subtype": "Security Freedom",
+    "meta_category": "Mundane Enforcement",
+    "text": "Citizens should be allowed to hire private security forces for their neighborhoods or businesses without turning them into public agencies.",
+    "vector": [
+      -0.5,
+      -0.5,
+      1.0
+    ]
+  },
+  {
+    "id": 64,
+    "pair_id": "open_borders_welfare_1",
+    "primary_subtype": "Migration Equity",
+    "meta_category": "Borders and Nation",
+    "text": "Non-citizen migrants should have access to basic public benefits after arrival, even if taxpayers in the host country object.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 65,
+    "pair_id": "religious_exemption_1",
+    "primary_subtype": "Minority Equity",
+    "meta_category": "Religion and Civilization",
+    "text": "Religious minorities should receive broad exemptions from general laws when those laws conflict with their customs.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 66,
+    "pair_id": "platform_access_1",
+    "primary_subtype": "Digital Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Dominant online platforms should be required to host lawful political speech equally, even if this disrupts their internal moderation systems.",
+    "vector": [
+      1.0,
+      -1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 67,
+    "pair_id": "meritocracy_2",
+    "primary_subtype": "Meritocratic Stability",
+    "meta_category": "Access vs. Order",
+    "text": "Elite positions should go to the highest performers, even if this consistently produces unequal demographic outcomes.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 68,
+    "pair_id": "public_memory_1",
+    "primary_subtype": "Historical Continuity Stability",
+    "meta_category": "Historical Legitimacy",
+    "text": "Public monuments to flawed national founders should generally remain because continuity matters more than symbolic moral purification.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 69,
+    "pair_id": "citizenship_priority_1",
+    "primary_subtype": "National Stability",
+    "meta_category": "Borders and Nation",
+    "text": "A government has a stronger duty to preserve cohesion among its citizens than to treat citizens and non-citizens with equal concern.",
+    "vector": [
+      -1.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "id": 70,
+    "pair_id": "dating_algorithms_1",
+    "primary_subtype": "Social Parity Equity",
+    "meta_category": "Technology and Social Life",
+    "text": "Dating platforms should be required to audit or adjust their matching algorithms if they systematically reduce visibility for protected or marginalized groups.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 71,
+    "pair_id": "algorithmic_wages_1",
+    "primary_subtype": "Labor Equity",
+    "meta_category": "Technology and Work",
+    "text": "Workers should have a legal right to inspect and challenge the algorithms that determine their pay, schedule, or firing risk.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 72,
+    "pair_id": "education_tracking_1",
+    "primary_subtype": "Educational Equity",
+    "meta_category": "Education and Culture",
+    "text": "Schools should delay academic tracking if early separation would lock disadvantaged children into lower-status paths.",
+    "vector": [
+      1.0,
+      0.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 73,
+    "pair_id": "contract_surrogacy_1",
+    "primary_subtype": "Contract Freedom",
+    "meta_category": "Personal Life",
+    "text": "Adults should be free to enter paid surrogacy contracts without the state imposing moral restrictions on the arrangement.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "id": 74,
+    "pair_id": "private_discrimination_1",
+    "primary_subtype": "Association Freedom",
+    "meta_category": "Right to Exclude",
+    "text": "Private clubs, schools, and platforms should be free to choose their members or users, even when their standards are socially exclusionary.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "id": 75,
+    "pair_id": "automation_layoffs_1",
+    "primary_subtype": "Corporate Freedom",
+    "meta_category": "Technology and Work",
+    "text": "A company should be free to replace most of its workforce with automation if it owns the capital and honors existing contracts.",
+    "vector": [
+      -1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "id": 76,
+    "pair_id": "content_controls_1",
+    "primary_subtype": "Public Safety Stability/Equity",
+    "meta_category": "Epistemic Authority",
+    "text": "During a major public emergency, platforms should suppress viral misinformation even when the claims are not clearly illegal.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 77,
+    "pair_id": "bioengineering_1",
+    "primary_subtype": "Biosecurity Stability/Equity",
+    "meta_category": "Future Risk",
+    "text": "Private genetic engineering should be heavily restricted if it could create inherited advantages for wealthy families.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 78,
+    "pair_id": "child_online_1",
+    "primary_subtype": "Child Protection Stability/Equity",
+    "meta_category": "Mundane Enforcement",
+    "text": "The state should impose strict age verification online to protect children, even if adults lose privacy and frictionless access.",
+    "vector": [
+      0.5,
+      0.5,
+      -1.0
+    ]
+  },
+  {
+    "id": 79,
+    "pair_id": "school_choice_1",
+    "primary_subtype": "Education Freedom/Equity",
+    "meta_category": "Access vs. Order",
+    "text": "Parents should be free to use public education funds at private or alternative schools, even if it weakens centralized school planning.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 80,
+    "pair_id": "urban_experiment_1",
+    "primary_subtype": "Local Experiment Freedom/Equity",
+    "meta_category": "Governance Design",
+    "text": "Cities should be allowed to experiment with radically different housing, drug, and policing policies without needing national uniformity.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 81,
+    "pair_id": "open_research_1",
+    "primary_subtype": "Scientific Freedom/Equity",
+    "meta_category": "Epistemic Authority",
+    "text": "Scientific papers and publicly funded research should be freely accessible to everyone, even if this disrupts established publishers and credentialing systems.",
+    "vector": [
+      0.5,
+      -1.0,
+      0.5
+    ]
+  },
+  {
+    "id": 82,
+    "pair_id": "border_closure_1",
+    "primary_subtype": "Border Stability/Freedom",
+    "meta_category": "Borders and Nation",
+    "text": "A country should be free to close its borders to preserve wages, security, and cultural continuity, even if desperate outsiders are excluded.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 83,
+    "pair_id": "charter_city_1",
+    "primary_subtype": "Exit Stability/Freedom",
+    "meta_category": "Governance Design",
+    "text": "A region should be allowed to create a charter city with special courts and business rules if residents can leave and the project increases order and prosperity.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 84,
+    "pair_id": "predictive_policing_1",
+    "primary_subtype": "Security Stability/Freedom",
+    "meta_category": "Mundane Enforcement",
+    "text": "Police should be allowed to use predictive analytics to concentrate patrols in high-risk areas, even if it results in disproportionate demographic targeting.",
+    "vector": [
+      -1.0,
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "id": 85,
+    "pair_id": "direct_democracy_1",
+    "primary_subtype": "Democratic Stability",
+    "meta_category": "Governance Design",
+    "text": "Major constitutional changes should require broad supermajority approval, even if this prevents the rapid expansion of individual civil liberties.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 86,
+    "pair_id": "platform_identity_1",
+    "primary_subtype": "Digital Order Stability",
+    "meta_category": "Epistemic Authority",
+    "text": "Large social platforms should require real-name identity verification to reduce fraud, extremism, and coordinated manipulation.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 87,
+    "pair_id": "sacred_sites_1",
+    "primary_subtype": "Religious Stability",
+    "meta_category": "Religion and Civilization",
+    "text": "Development should be blocked near sacred or culturally central sites, even when the owner has legal title and wants to build.",
+    "vector": [
+      0.0,
+      1.0,
+      -1.0
+    ]
+  },
+  {
+    "id": 88,
+    "pair_id": "whistleblowing_1",
+    "primary_subtype": "Anti-Secrecy Freedom",
+    "meta_category": "Epistemic Authority",
+    "text": "Citizens should be allowed to publish leaked state documents when they expose serious wrongdoing, even if officials claim disclosure harms national trust.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
+  },
+  {
+    "id": 89,
+    "pair_id": "drug_legalization_2",
+    "primary_subtype": "Personal Freedom",
+    "meta_category": "Personal Life",
+    "text": "Adults should be free to buy and use performance-enhancing drugs, psychedelics, or stimulants without paternalistic safety bans.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
+  },
+  {
+    "id": 90,
+    "pair_id": "stateless_money_1",
+    "primary_subtype": "Financial Freedom",
+    "meta_category": "Technology and Work",
+    "text": "People should be free to move their wealth through private encryption tools even if this weakens tax collection and financial surveillance.",
+    "vector": [
+      0.0,
+      -1.0,
+      1.0
+    ]
   }
 ]

@@ -30,6 +30,27 @@ const AXES = {
 
 const VECTOR_ORDER = ["equality", "stability", "freedom"];
 const DISPLAY_ORDER = ["freedom", "equality", "stability"];
+const DEFAULT_TEST_LENGTH = 45;
+const TEST_LENGTH_OPTIONS = [
+  { length: 45, label: "Standard" },
+  { length: 60, label: "Extended" },
+  { length: 75, label: "High precision" },
+  { length: 90, label: "Full bank" }
+];
+const BASE_VECTOR_QUOTAS = [
+  { vector: [1, -0.5, -0.5], count: 6 },
+  { vector: [-0.5, 1, -0.5], count: 6 },
+  { vector: [-0.5, -0.5, 1], count: 6 },
+  { vector: [1, -1, 0], count: 3 },
+  { vector: [-1, 1, 0], count: 3 },
+  { vector: [1, 0, -1], count: 3 },
+  { vector: [-1, 0, 1], count: 3 },
+  { vector: [0, 1, -1], count: 3 },
+  { vector: [0, -1, 1], count: 3 },
+  { vector: [0.5, 0.5, -1], count: 3 },
+  { vector: [0.5, -1, 0.5], count: 3 },
+  { vector: [-1, 0.5, 0.5], count: 3 }
+];
 const ANSWER_VALUES = [
   { value: -2, label: "Strongly oppose" },
   { value: -1, label: "Oppose" },
@@ -181,38 +202,12 @@ const RESULT_AXIS_DETAILS = {
   }
 };
 
-const RESULT_DOMAINS = [
-  {
-    id: "economics",
-    label: "Economics",
-    keywords: ["market", "corporate", "property", "labor", "wage", "monopoly", "bailout", "protectionism", "financial", "tax", "licensing", "developer"]
-  },
-  {
-    id: "personal_autonomy",
-    label: "Personal autonomy",
-    keywords: ["speech", "body", "bodily", "medicine", "drug", "personal", "optout", "risk"]
-  },
-  {
-    id: "welfare",
-    label: "Welfare and provision",
-    keywords: ["welfare", "housing", "utility", "health", "school", "transit", "educational", "infrastructure equity", "universal provision"]
-  },
-  {
-    id: "institutions",
-    label: "Institutions and order",
-    keywords: ["institution", "bureaucracy", "justice", "security", "law", "merit", "fiscal", "infrastructure", "public order", "systemic"]
-  },
-  {
-    id: "culture",
-    label: "Culture and belonging",
-    keywords: ["tradition", "assimilation", "community", "zoning", "loyalty", "protest", "noise", "cultural", "generational"]
-  }
-];
-
 const state = {
-  questions: [],
+  questionBank: [],
+  selectedQuestions: [],
   byId: new Map(),
   seed: "",
+  testLength: DEFAULT_TEST_LENGTH,
   order: [],
   index: 0,
   answers: {},
@@ -246,6 +241,8 @@ const els = {
   prevQuestion: $("#prevQuestion"),
   nextQuestion: $("#nextQuestion"),
   quizStatus: $("#quizStatus"),
+  testLengthToggle: $("#testLengthToggle"),
+  testLengthOptions: $("#testLengthOptions"),
   resultSummary: $("#resultSummary"),
   resultOverview: $("#resultOverview"),
   resultBars: $("#resultBars"),
@@ -383,12 +380,87 @@ async function loadQuestions() {
     const response = await fetch("questions.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const questions = await response.json();
-    state.questions = questions.slice().sort((a, b) => Number(a.id) - Number(b.id));
-    state.byId = new Map(state.questions.map((question) => [String(question.id), question]));
+    state.questionBank = questions.slice().sort((a, b) => Number(a.id) - Number(b.id));
+    validateQuestionBank(state.questionBank);
+    state.byId = new Map(state.questionBank.map((question) => [String(question.id), question]));
   } catch (error) {
     setStatus("Questions could not be loaded.");
     console.error(error);
   }
+}
+
+function validateQuestionBank(questions) {
+  const seen = new Set();
+  const expectedVectors = new Set(BASE_VECTOR_QUOTAS.map(({ vector }) => vectorKey(vector)));
+  questions.forEach((question) => {
+    const id = String(question.id);
+    if (seen.has(id)) throw new Error(`Duplicate question id: ${id}`);
+    seen.add(id);
+    ["id", "pair_id", "primary_subtype", "meta_category", "text", "vector"].forEach((field) => {
+      if (!(field in question)) throw new Error(`Question ${id} missing ${field}`);
+    });
+    if (!Array.isArray(question.vector) || question.vector.length !== VECTOR_ORDER.length) {
+      throw new Error(`Question ${id} has an invalid vector`);
+    }
+    const vector = question.vector.map(Number);
+    if (vector.some((value) => !Number.isFinite(value))) throw new Error(`Question ${id} vector must be numeric`);
+    const sum = vector.reduce((total, value) => total + value, 0);
+    if (Math.abs(sum) > 0.000001) throw new Error(`Question ${id} vector must sum to zero`);
+    if (!expectedVectors.has(vectorKey(vector))) throw new Error(`Question ${id} has an unexpected vector template`);
+  });
+
+  const groups = groupQuestionsByVector(questions);
+  quotasForTestLength(maxTestLength()).forEach(({ vector, count }) => {
+    const key = vectorKey(vector);
+    const available = groups.get(key)?.length || 0;
+    if (available < count) throw new Error(`Need ${count} questions for vector ${key}; found ${available}`);
+  });
+}
+
+function selectSeededQuestionForm(seed) {
+  const groups = groupQuestionsByVector(state.questionBank);
+  const selected = quotasForTestLength(state.testLength).flatMap(({ vector, count }) => {
+    const key = vectorKey(vector);
+    const group = groups.get(key) || [];
+    return seededShuffle(group, `${seed}:${key}`).slice(0, count);
+  });
+  state.selectedQuestions = seededShuffle(selected, `${seed}:final`);
+  state.order = state.selectedQuestions.map((question) => String(question.id));
+}
+
+function quotasForTestLength(length) {
+  const ratio = normalizeTestLength(length) / DEFAULT_TEST_LENGTH;
+  return BASE_VECTOR_QUOTAS.map(({ vector, count }) => ({
+    vector,
+    count: Math.round(count * ratio)
+  }));
+}
+
+function maxTestLength() {
+  return Math.max(...TEST_LENGTH_OPTIONS.map((option) => option.length));
+}
+
+function groupQuestionsByVector(questions) {
+  return questions.reduce((groups, question) => {
+    const key = vectorKey(question.vector);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(question);
+    return groups;
+  }, new Map());
+}
+
+function vectorKey(vector) {
+  return vector.map((value) => String(Number(value))).join(",");
+}
+
+function seededShuffle(items, seed) {
+  const shuffled = items.slice();
+  const rng = mulberry32(hashSeed(seed));
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(rng() * (index + 1));
+    [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]];
+  }
+  return shuffled;
 }
 
 function initTriangle() {
@@ -1282,22 +1354,27 @@ function editorExportFilename() {
 }
 
 function initQuizPage() {
-  if (!state.questions.length) return;
+  if (!state.questionBank.length) return;
   const parsed = parseQuizUrl();
   state.seed = parsed.seed || randomSeed();
-  state.order = shuffledQuestionIds(state.seed);
-  const saved = parsed.hasUrlProgress ? parsed : readQuizProgress(state.seed);
+  state.testLength = parsed.testLength;
+  selectSeededQuestionForm(state.seed);
+  const saved = parsed.hasUrlProgress
+    ? { index: parsed.index, answers: decodeAnswers(parsed.encodedAnswers) }
+    : readQuizProgress(state.seed);
   state.index = clamp(saved.index, 0, state.order.length - 1);
   state.answers = sanitizeAnswers(saved.answers);
 
+  ensureTestLengthControl();
   renderAnswerButtons();
   bindQuizEvents();
+  renderTestLengthControl();
   replaceQuizUrl();
   renderQuiz();
 }
 
 function initResultsPage() {
-  if (!state.questions.length) return;
+  if (!state.questionBank.length) return;
   const parsed = parseResultsUrl();
   if (!parsed.seed) {
     renderNoResult();
@@ -1305,9 +1382,10 @@ function initResultsPage() {
   }
 
   state.seed = parsed.seed;
-  state.order = shuffledQuestionIds(state.seed);
+  state.testLength = parsed.testLength;
+  selectSeededQuestionForm(state.seed);
   state.index = 0;
-  state.answers = sanitizeAnswers(parsed.answers);
+  state.answers = sanitizeAnswers(decodeAnswers(parsed.encodedAnswers));
   state.lastResult = calculateResult();
 
   if (answeredCount() === 0) {
@@ -1326,6 +1404,26 @@ function initResultsPage() {
 function bindQuizEvents() {
   els.prevQuestion?.addEventListener("click", () => moveQuestion(-1));
   els.nextQuestion?.addEventListener("click", () => moveQuestion(1));
+  els.testLengthToggle?.addEventListener("click", () => {
+    const expanded = els.testLengthToggle.getAttribute("aria-expanded") === "true";
+    setTestLengthOptionsOpen(!expanded);
+  });
+}
+
+function ensureTestLengthControl() {
+  if (els.testLengthToggle && els.testLengthOptions) return;
+  const quizCard = $("#quizCard");
+  if (!quizCard) return;
+  quizCard.insertAdjacentHTML("afterend", `
+    <div class="test-length-control" aria-label="Test length">
+      <button class="test-length-toggle" id="testLengthToggle" type="button" aria-expanded="false" aria-controls="testLengthOptions">
+        45 questions · Standard test · Change length
+      </button>
+      <div class="test-length-options" id="testLengthOptions" hidden></div>
+    </div>
+  `);
+  els.testLengthToggle = $("#testLengthToggle");
+  els.testLengthOptions = $("#testLengthOptions");
 }
 
 function renderAnswerButtons() {
@@ -1350,9 +1448,10 @@ function renderQuiz() {
   if (!question) return;
 
   const answered = answeredCount();
-  const progress = (answered / state.questions.length) * 100;
+  const total = state.selectedQuestions.length;
+  const progress = total ? (answered / total) * 100 : 0;
   if (els.questionCounter) els.questionCounter.textContent = `Question ${state.index + 1}`;
-  if (els.answeredCounter) els.answeredCounter.textContent = `${answered}/${state.questions.length}`;
+  if (els.answeredCounter) els.answeredCounter.textContent = `${answered}/${total}`;
   if (els.seedBadge) els.seedBadge.textContent = `Seed ${state.seed}`;
   if (els.progressFill) els.progressFill.style.width = `${progress}%`;
   if (els.questionCategory) els.questionCategory.textContent = `${question.meta_category} / ${question.primary_subtype}`;
@@ -1369,6 +1468,55 @@ function renderQuiz() {
   els.answerScale?.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("is-selected", Number(button.dataset.answer) === selected);
   });
+}
+
+function renderTestLengthControl() {
+  if (!els.testLengthToggle || !els.testLengthOptions) return;
+  const current = currentTestLengthOption();
+  els.testLengthToggle.textContent = `${current.length} questions · ${current.label} test · Change length`;
+  els.testLengthOptions.innerHTML = TEST_LENGTH_OPTIONS.map((option) => `
+    <button type="button" data-test-length="${option.length}" aria-pressed="${option.length === state.testLength}">
+      <strong>${option.length}</strong>
+      <span>${escapeHtml(option.label)}</span>
+    </button>
+  `).join("");
+
+  els.testLengthOptions.querySelectorAll("[data-test-length]").forEach((button) => {
+    button.addEventListener("click", () => changeTestLength(Number(button.dataset.testLength)));
+  });
+}
+
+function currentTestLengthOption() {
+  return TEST_LENGTH_OPTIONS.find((option) => option.length === state.testLength) || TEST_LENGTH_OPTIONS[0];
+}
+
+function setTestLengthOptionsOpen(open) {
+  if (!els.testLengthToggle || !els.testLengthOptions) return;
+  els.testLengthToggle.setAttribute("aria-expanded", String(open));
+  els.testLengthOptions.hidden = !open;
+}
+
+function changeTestLength(length) {
+  const nextLength = normalizeTestLength(length);
+  if (nextLength === state.testLength) {
+    setTestLengthOptionsOpen(false);
+    return;
+  }
+
+  const hadAnswers = answeredCount() > 0;
+  if (hadAnswers && !window.confirm("Changing test length will reset this quiz. Continue?")) return;
+
+  clearQuizProgress(state.seed);
+  state.testLength = nextLength;
+  selectSeededQuestionForm(state.seed);
+  state.index = 0;
+  state.answers = {};
+  persistQuizProgress();
+  replaceQuizUrl();
+  renderTestLengthControl();
+  setTestLengthOptionsOpen(false);
+  renderQuiz();
+  if (hadAnswers) setStatus("Test length changed. Answers were reset.");
 }
 
 function moveQuestion(delta) {
@@ -1789,8 +1937,10 @@ function renderTechnicalDetails(result, analysis) {
       <dl class="result-facts">
         <dt>Seed</dt>
         <dd>${escapeHtml(state.seed)}</dd>
+        <dt>Test length</dt>
+        <dd>${state.testLength} questions</dd>
         <dt>Answered</dt>
-        <dd>${result.answered} of ${state.questions.length}</dd>
+        <dd>${result.answered} of ${state.selectedQuestions.length}</dd>
         <dt>Coordinate order</dt>
         <dd>${escapeHtml(analysis.orderLine)}</dd>
         ${DISPLAY_ORDER.map((axis) => `
@@ -1805,7 +1955,7 @@ function renderTechnicalDetails(result, analysis) {
 }
 
 function answeredQuestionRecords() {
-  return state.questions
+  return state.selectedQuestions
     .map((question) => {
       const answerValue = state.answers[String(question.id)];
       if (!Number.isFinite(answerValue)) return null;
@@ -1841,8 +1991,21 @@ function contributionRanking(contributions) {
 }
 
 function buildDomainStats(records) {
-  return RESULT_DOMAINS.map((domain) => {
-    const domainRecords = records.filter((record) => record.domainId === domain.id);
+  const grouped = records.reduce((collection, record) => {
+    const id = record.domainId;
+    if (!collection.has(id)) {
+      collection.set(id, {
+        id,
+        label: id,
+        records: []
+      });
+    }
+    collection.get(id).records.push(record);
+    return collection;
+  }, new Map());
+
+  return Array.from(grouped.values()).map((domain) => {
+    const domainRecords = domain.records;
     const raw = sumContributions(domainRecords);
     const weights = normalizeRawScores(raw, domainRecords.length);
     return {
@@ -1856,7 +2019,7 @@ function buildDomainStats(records) {
         .map((axis) => ({ axis, value: weights[axis] }))
         .sort((a, b) => b.value - a.value)
     };
-  }).filter((domain) => domain.count > 0);
+  }).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
 function buildPairShifts(records) {
@@ -1868,6 +2031,7 @@ function buildPairShifts(records) {
   }, new Map());
 
   return Array.from(groups.entries()).map(([pairId, group]) => {
+    if (group.length < 2) return null;
     const abstract = group.find((record) => record.question.meta_category === "Abstract Principle" && record.supportedAxis);
     const applied = group.filter((record) => record !== abstract && record.supportedAxis);
     if (!abstract || !applied.length) return null;
@@ -1964,22 +2128,7 @@ function contributionDistance(a, b) {
 }
 
 function questionDomain(question) {
-  const haystack = [
-    question.pair_id,
-    question.primary_subtype,
-    question.meta_category,
-    question.text
-  ].join(" ").toLowerCase();
-  const scored = RESULT_DOMAINS.map((domain, index) => ({
-    domain,
-    index,
-    score: domain.keywords.reduce((sum, keyword) => sum + (haystack.includes(keyword) ? 1 : 0), 0)
-  })).sort((a, b) => b.score - a.score || a.index - b.index);
-  return scored[0]?.score > 0 ? scored[0].domain.id : "institutions";
-}
-
-function domainLabel(domainId) {
-  return RESULT_DOMAINS.find((domain) => domain.id === domainId)?.label || "Institutions and order";
+  return String(question.meta_category || "Uncategorized").trim() || "Uncategorized";
 }
 
 function recordDirection(record) {
@@ -2463,8 +2612,8 @@ function calculateResult() {
   const raw = { freedom: 0, equality: 0, stability: 0 };
   let answered = 0;
 
-  Object.entries(state.answers).forEach(([id, value]) => {
-    const question = state.byId.get(String(id));
+  state.selectedQuestions.forEach((question) => {
+    const value = state.answers[String(question.id)];
     if (!question || !Number.isFinite(value)) return;
     answered += 1;
     VECTOR_ORDER.forEach((axis, index) => {
@@ -2501,13 +2650,15 @@ function normalizeRawScores(raw, answered) {
 
 function parseQuizUrl() {
   const params = new URLSearchParams(window.location.search);
+  const testLength = normalizeTestLength(params.get("len"));
   const legacySeed = params.get("seed");
   if (legacySeed) {
     const hasUrlProgress = params.has("i") || params.has("a");
     return {
       seed: normalizeSeed(legacySeed),
+      testLength,
       index: Number(params.get("i") || 0),
-      answers: decodeAnswers(params.get("a") || ""),
+      encodedAnswers: params.get("a") || "",
       hasUrlProgress
     };
   }
@@ -2516,19 +2667,22 @@ function parseQuizUrl() {
   const [seed, index, answers = ""] = raw.split(".");
   return {
     seed: seed ? normalizeSeed(seed) : "",
+    testLength,
     index: Number(index || 0),
-    answers: decodeAnswers(answers),
+    encodedAnswers: answers,
     hasUrlProgress: Boolean(raw)
   };
 }
 
 function parseResultsUrl() {
   const params = new URLSearchParams(window.location.search);
+  const testLength = normalizeTestLength(params.get("len"));
   const legacySeed = params.get("seed");
   if (legacySeed) {
     return {
       seed: normalizeSeed(legacySeed),
-      answers: decodeAnswers(params.get("a") || "")
+      testLength,
+      encodedAnswers: params.get("a") || ""
     };
   }
 
@@ -2536,7 +2690,8 @@ function parseResultsUrl() {
   const [seed, answers = ""] = raw.split(".");
   return {
     seed: seed ? normalizeSeed(seed) : "",
-    answers: decodeAnswers(answers)
+    testLength,
+    encodedAnswers: answers
   };
 }
 
@@ -2554,11 +2709,11 @@ function replaceResultsUrl() {
 }
 
 function quizHref() {
-  return `quiz.html?seed=${encodeURIComponent(state.seed)}`;
+  return `quiz.html?seed=${encodeURIComponent(state.seed)}&len=${state.testLength}`;
 }
 
 function resultsHref() {
-  return `results.html?r=${encodeURIComponent([state.seed, encodeAnswers(state.answers)].join("."))}`;
+  return `results.html?r=${encodeURIComponent([state.seed, encodeAnswers(state.answers)].join("."))}&len=${state.testLength}`;
 }
 
 function persistQuizProgress() {
@@ -2579,7 +2734,12 @@ function readQuizProgress(seed) {
 }
 
 function quizProgressCookieName(seed) {
-  return `${QUIZ_PROGRESS_COOKIE_PREFIX}${seed}`;
+  return `${QUIZ_PROGRESS_COOKIE_PREFIX}${state.testLength}-${seed}`;
+}
+
+function clearQuizProgress(seed) {
+  if (!seed) return;
+  setCookie(quizProgressCookieName(seed), "", 0);
 }
 
 function setCookie(name, value, maxAge) {
@@ -2597,7 +2757,7 @@ function getCookie(name) {
 
 function encodeAnswers(answers) {
   const byValue = new Map([[-2, "0"], [-1, "1"], [0, "2"], [1, "3"], [2, "4"]]);
-  return state.questions
+  return state.selectedQuestions
     .map((question) => byValue.get(answers[String(question.id)]) || "x")
     .join("")
     .replace(/x+$/, "");
@@ -2606,7 +2766,7 @@ function encodeAnswers(answers) {
 function decodeAnswers(encoded) {
   const byChar = new Map([["0", -2], ["1", -1], ["2", 0], ["3", 1], ["4", 2]]);
   const answers = {};
-  state.questions.forEach((question, index) => {
+  state.selectedQuestions.forEach((question, index) => {
     const value = byChar.get(encoded[index]);
     if (Number.isFinite(value)) answers[String(question.id)] = value;
   });
@@ -2614,8 +2774,9 @@ function decodeAnswers(encoded) {
 }
 
 function sanitizeAnswers(answers = {}) {
+  const allowed = new Set(state.selectedQuestions.map((question) => String(question.id)));
   return Object.entries(answers).reduce((clean, [id, value]) => {
-    if (state.byId.has(String(id)) && Number.isFinite(value)) clean[String(id)] = value;
+    if (allowed.has(String(id)) && Number.isFinite(value)) clean[String(id)] = value;
     return clean;
   }, {});
 }
@@ -2629,17 +2790,7 @@ function currentQuestion() {
 }
 
 function answeredCount() {
-  return Object.keys(state.answers).filter((id) => Number.isFinite(state.answers[id])).length;
-}
-
-function shuffledQuestionIds(seed) {
-  const ids = state.questions.map((question) => String(question.id));
-  const rng = mulberry32(hashSeed(seed));
-  for (let index = ids.length - 1; index > 0; index -= 1) {
-    const swap = Math.floor(rng() * (index + 1));
-    [ids[index], ids[swap]] = [ids[swap], ids[index]];
-  }
-  return ids;
+  return state.selectedQuestions.filter((question) => Number.isFinite(state.answers[String(question.id)])).length;
 }
 
 function pointFromWeights(weights) {
@@ -2688,6 +2839,11 @@ function randomSeed() {
 
 function normalizeSeed(seed) {
   return String(seed || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || randomSeed();
+}
+
+function normalizeTestLength(length) {
+  const numeric = Number(length);
+  return TEST_LENGTH_OPTIONS.some((option) => option.length === numeric) ? numeric : DEFAULT_TEST_LENGTH;
 }
 
 function hashSeed(seed) {

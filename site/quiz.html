@@ -54,7 +54,7 @@
           <div class="quiz-card" id="quizCard">
             <div class="quiz-meta">
               <span id="questionCounter">Loading questions</span>
-              <span id="answeredCounter">0/45</span>
+              <span id="answeredCounter">0/0</span>
               <span id="seedBadge">Seed</span>
             </div>
             <div class="progress-track" aria-hidden="true">
@@ -74,6 +74,13 @@
               </button>
             </div>
             <p class="quiz-status" id="quizStatus" role="status"></p>
+          </div>
+
+          <div class="test-length-control" aria-label="Test length">
+            <button class="test-length-toggle" id="testLengthToggle" type="button" aria-expanded="false" aria-controls="testLengthOptions">
+              45 questions · Standard test · Change length
+            </button>
+            <div class="test-length-options" id="testLengthOptions" hidden></div>
           </div>
         </section>
       </main>

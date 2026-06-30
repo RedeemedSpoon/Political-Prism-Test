@@ -1064,6 +1064,61 @@ body[data-page="quiz"] #nextQuestion:disabled {
   display: none;
 }
 
+.test-length-control {
+  max-width: 920px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.test-length-toggle {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.test-length-toggle:hover,
+.test-length-toggle[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+.test-length-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.test-length-options button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.test-length-options button:hover {
+  border-color: var(--ink);
+}
+
+.test-length-options button[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--inverse);
+}
+
 .result-overview {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
@@ -1206,6 +1261,20 @@ body[data-page="quiz"] #nextQuestion:disabled {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.mini-stat-list {
+  max-height: min(360px, 48vh);
+  padding-bottom: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mini-stat-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .evidence-list li {
